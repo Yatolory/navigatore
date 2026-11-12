@@ -69,8 +69,8 @@
 
   function decodePath(arr) { const pts = []; let y = 0, x = 0; for (let i = 0; i < arr.length; i += 2) { y += arr[i]; x += arr[i + 1]; pts.push([x / S, y / S]); } return pts; }
 
-  let DATA = null, cache = { key: null, patterns: null };
-  function load(lines, orari) { DATA = { lines: lines.lines, tt: orari }; cache = { key: null, patterns: null }; }
+  let DATA = null, cache = { key: null, patterns: null, x: new Map() };
+  function load(lines, orari) { DATA = { lines: lines.lines, tt: orari }; cache = { key: null, patterns: null, x: new Map() }; }
   const ready = () => !!DATA;
 
   // Un «pattern» = una linea in una direzione, con tutte le corse di quel giorno e l'orario stimato a ogni fermata.
@@ -115,42 +115,97 @@
           }
           if (times.filter(x => x != null).length >= 2) runs.push(times);
         }
-        if (runs.length) out.push({ ref: line.ref, dir: di, to: d.to, stops, cum, runs, exact: new Set(anchors.map(a => a.oi)), path: d.path });
+        if (runs.length) out.push({ id: out.length, ref: line.ref, dir: di, to: d.to, stops, cum, runs, exact: new Set(anchors.map(a => a.oi)), path: d.path });
       });
     }
-    cache = { key, patterns: out };
+    cache = { key, patterns: out, x: new Map() };
     return out;
   }
 
-  /* Cerca i bus diretti da origin a dest ([lng,lat]).
+  // Coppie di fermate (una per linea) abbastanza vicine da poter cambiare bus a piedi.
+  function transfers(p1, p2) {
+    const key = p1.id + '|' + p2.id; if (cache.x.has(key)) return cache.x.get(key);
+    const out = [];
+    p1.stops.forEach((a, i) => {
+      const kx = Math.cos(rad(a.lat)) * 111320; let bj = -1, bd = 250;
+      p2.stops.forEach((c, j) => { const d = Math.hypot((a.lng - c.lng) * kx, (a.lat - c.lat) * 110540); if (d < bd) { bd = d; bj = j; } });
+      if (bj >= 0) out.push({ i, j: bj, w: walkMin(bd), m: bd });
+    });
+    cache.x.set(key, out); return out;
+  }
+
+  /* Cerca i bus da origin a dest ([lng,lat]): diretti e, se servono, con un cambio.
      pref 'primo'  → il primo bus che riesco a prendere entro 10 minuti a piedi;
      pref 'vicino' → la fermata più vicina, anche se c'è da aspettare. */
   function plan(origin, dest, date, pref) {
     const now = date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
     const maxW1 = pref === 'primo' ? 10 : 30, maxW2 = 20, direct = walkMin(hav(origin, dest));
-    const res = []; let nearO = Infinity, nearD = Infinity;
-    for (const p of patternsFor(date)) {
+    const P = patternsFor(date).map(p => {
       const w1 = p.stops.map(s => walkMin(hav(origin, [s.lng, s.lat]))), w2 = p.stops.map(s => walkMin(hav(dest, [s.lng, s.lat])));
-      nearO = Math.min(nearO, ...w1); nearD = Math.min(nearD, ...w2);
-      if (Math.min(...w1) > maxW1 || Math.min(...w2) > maxW2) continue;
+      return { p, w1, w2, m1: Math.min(...w1), m2: Math.min(...w2) };
+    });
+    const nearO = Math.min(...P.map(x => x.m1)), nearD = Math.min(...P.map(x => x.m2));
+    const stop = (p, times, i) => ({ name: p.stops[i].name, lng: p.stops[i].lng, lat: p.stops[i].lat, t: times[i], exact: p.exact.has(i) });
+    const leg = (p, times, b, e) => ({ line: p.ref, to: p.to, pattern: p, bi: b, ei: e, board: stop(p, times, b), alight: stop(p, times, e), nStops: e - b });
+    const itin = (legs, walk1, walk2, x) => { const f = legs[0], l = legs[legs.length - 1]; return { legs, line: legs.map(g => g.line).join('+'), to: f.to, board: f.board, alight: l.alight, walk1, walk2, xwalk: x ? x.w : 0, xdist: x ? x.m : 0, wait: f.board.t - now - walk1, arr: l.alight.t + walk2, dur: l.alight.t + walk2 - now, key: legs.map(g => g.line + '|' + g.pattern.dir).join('>') }; };
+    // fermata di salita: la più vicina che faccio in tempo a raggiungere
+    const boardOf = (x, times) => { let b = -1; for (let i = 0; i < times.length - 1; i++) if (times[i] != null && x.w1[i] <= maxW1 && times[i] >= now + x.w1[i] + 1 && (b < 0 || x.w1[i] < x.w1[b])) b = i; return b; };
+
+    const directs = [];
+    for (const x of P) {
+      if (x.m1 > maxW1 || x.m2 > maxW2) continue;
+      const p = x.p;
       for (const times of p.runs) {
-        let b = -1;                                   // fermata di salita: la più vicina che faccio in tempo a raggiungere
-        for (let i = 0; i < times.length - 1; i++) if (times[i] != null && w1[i] <= maxW1 && times[i] >= now + w1[i] + 1 && (b < 0 || w1[i] < w1[b])) b = i;
-        if (b < 0) continue;
+        const b = boardOf(x, times); if (b < 0 || times[b] - now > 240) continue;
         let e = -1;                                   // fermata di discesa: quella che mi fa arrivare prima
-        for (let j = b + 1; j < times.length; j++) if (times[j] != null && w2[j] <= maxW2 && (e < 0 || times[j] + w2[j] < times[e] + w2[e])) e = j;
-        if (e < 0 || p.cum[e] - p.cum[b] < 400 || w1[b] + w2[e] > direct * .9) continue;
-        if (times[b] - now > 240) continue;
-        const stop = (i) => ({ name: p.stops[i].name, lng: p.stops[i].lng, lat: p.stops[i].lat, t: times[i], exact: p.exact.has(i) });
-        res.push({ line: p.ref, to: p.to, pattern: p, bi: b, ei: e, board: stop(b), alight: stop(e), walk1: w1[b], walk2: w2[e], nStops: e - b, wait: times[b] - now - w1[b], arr: times[e] + w2[e], dur: times[e] + w2[e] - now });
+        for (let j = b + 1; j < times.length; j++) if (times[j] != null && x.w2[j] <= maxW2 && (e < 0 || times[j] + x.w2[j] < times[e] + x.w2[e])) e = j;
+        if (e < 0 || p.cum[e] - p.cum[b] < 400 || x.w1[b] + x.w2[e] > direct * .9) continue;
+        directs.push(itin([leg(p, times, b, e)], x.w1[b], x.w2[e]));
       }
     }
+
+    // con un cambio: prima linea vicino a me, seconda linea che arriva vicino alla destinazione
+    const changes = [];
+    const lasts = P.filter(x => x.m2 <= maxW2).map(x => {
+      const eB = new Array(x.w2.length).fill(-1); let k = -1;         // per ogni fermata, la successiva più vicina alla destinazione
+      for (let j = x.w2.length - 1; j >= 0; j--) { eB[j] = k; if (x.w2[j] <= maxW2 && (k < 0 || x.w2[j] < x.w2[k])) k = j; }
+      return { ...x, eB };
+    });
+    for (const A of P) {
+      if (A.m1 > maxW1) continue;
+      const cand = A.p.runs.map(times => ({ times, b: boardOf(A, times) })).filter(c => c.b >= 0 && c.times[c.b] - now <= 180).sort((u, v) => u.times[u.b] - v.times[v.b]).slice(0, 4);
+      if (!cand.length) continue;
+      for (const B of lasts) {
+        if (B.p.ref === A.p.ref) continue;
+        const tr = transfers(A.p, B.p).filter(t => B.eB[t.j] >= 0 && B.p.cum[B.eB[t.j]] - B.p.cum[t.j] >= 300);
+        if (!tr.length) continue;
+        for (const { times, b } of cand) {
+          let best = null;
+          for (const t of tr) {
+            if (t.i <= b || times[t.i] == null || A.p.cum[t.i] - A.p.cum[b] < 300) continue;
+            const e = B.eB[t.j], ready = times[t.i] + t.w + 2;      // 2 minuti di margine per il cambio
+            for (const t2 of B.p.runs) {
+              if (t2[t.j] == null || t2[e] == null || t2[t.j] < ready || t2[t.j] > ready + 45) continue;   // al massimo 45 minuti di attesa al cambio
+              const arr = t2[e] + B.w2[e];
+              if (!best || arr < best.arr || (arr === best.arr && t.w < best.t.w)) best = { arr, t, t2, e };
+            }
+          }
+          if (best && A.w1[b] + best.t.w + B.w2[best.e] < direct * .9) changes.push(itin([leg(A.p, times, b, best.t.i), leg(B.p, best.t2, best.t.j, best.e)], A.w1[b], B.w2[best.e], best.t));
+        }
+      }
+    }
+    // un cambio si propone solo se è obbligatorio (nessun diretto) o fa arrivare almeno 10 minuti prima
+    const bestDirect = directs.length ? Math.min(...directs.map(d => d.arr)) : Infinity;
+    changes.sort((a, b) => a.arr - b.arr);
+    const seenX = {}, useful = changes.filter(c => c.arr <= bestDirect - 10 && !seenX[c.key] && (seenX[c.key] = 1)).slice(0, directs.length ? 2 : 5);
+
+    const res = directs.concat(useful);
     res.sort(pref === 'primo' ? (a, b) => a.board.t - b.board.t || a.arr - b.arr : (a, b) => Math.round(a.walk1) - Math.round(b.walk1) || a.board.t - b.board.t);
     const seen = {}, out = [];
     for (const r of res) {
-      const k = r.line + '|' + r.pattern.dir, k2 = k + '|' + Math.round(r.board.t);
-      if (seen[k2] || (seen[k] || 0) >= 2) continue;
-      seen[k2] = 1; seen[k] = (seen[k] || 0) + 1; out.push(r);
+      const k2 = r.key + '|' + Math.round(r.board.t);
+      if (seen[k2] || (seen[r.key] || 0) >= 2) continue;
+      seen[k2] = 1; seen[r.key] = (seen[r.key] || 0) + 1; out.push(r);
       if (out.length >= 6) break;
     }
     return { list: out, nearO, nearD };

@@ -438,10 +438,13 @@ function vPlan(){
   const o=S.origin?S.origin.name:S.me?'Posizione attuale':'Scegli la partenza…',bus=S.tmode==='bus',noO=!S.origin&&!S.me;
   let alts;
   if(S.loading)alts='<div class="spin"></div>';
-  else if(bus&&S.its.length)alts='<div class="card" style="margin-top:10px">'+S.its.map((it,i)=>`<button class="alt bus ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${Bus.hhmm(it.board.t-it.walk1)} → ${Bus.hhmm(it.arr)}</b>
-      <span><i class="lb">${esc(it.line)}</i> direzione ${esc(it.to)} · ${fmtDur(it.dur*60)} in tutto</span>
-      <span>Sali a <b>${esc(it.board.name)}</b> alle <b>${Bus.hhmm(it.board.t)}</b>${it.board.exact?'':' circa'} · ${Math.max(1,Math.round(it.walk1))} min a piedi, ${Math.max(0,Math.round(it.wait))} min di attesa</span>
-      <span>Scendi a <b>${esc(it.alight.name)}</b> alle <b>${Bus.hhmm(it.alight.t)}</b>${it.alight.exact?'':' circa'} · ${it.nStops} fermate, poi ${Math.max(1,Math.round(it.walk2))} min a piedi</span></div><div class="radio"></div></button>`).join('')+'</div>';
+  else if(bus&&S.its.length)alts='<div class="card" style="margin-top:10px">'+S.its.map((it,i)=>{
+    const f=it.legs[0],l=it.legs[it.legs.length-1],ca=x=>x.exact?'':' circa',x2=it.legs[1];
+    return`<button class="alt bus ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${Bus.hhmm(it.board.t-it.walk1)} → ${Bus.hhmm(it.arr)}</b>
+      <span>${it.legs.map(g=>`<i class="lb">${esc(g.line)}</i>`).join(' → ')} ${x2?'· 1 cambio':'direzione '+esc(f.to)} · ${fmtDur(it.dur*60)} in tutto</span>
+      <span>Sali a <b>${esc(f.board.name)}</b> alle <b>${Bus.hhmm(f.board.t)}</b>${ca(f.board)} · ${Math.max(1,Math.round(it.walk1))} min a piedi, ${Math.max(0,Math.round(it.wait))} min di attesa</span>
+      ${x2?`<span>Cambia a <b>${esc(f.alight.name)}</b> (arrivo ${Bus.hhmm(f.alight.t)}${ca(f.alight)}): linea <b>${esc(x2.line)}</b> direzione ${esc(x2.to)} alle <b>${Bus.hhmm(x2.board.t)}</b>${ca(x2.board)}${it.xdist>30?` dalla fermata <b>${esc(x2.board.name)}</b>, a ${fmtDist(it.xdist)}`:''}</span>`:''}
+      <span>Scendi a <b>${esc(l.alight.name)}</b> alle <b>${Bus.hhmm(l.alight.t)}</b>${ca(l.alight)} · poi ${Math.max(1,Math.round(it.walk2))} min a piedi</span></div><div class="radio"></div></button>`}).join('')+'</div>';
   else if(!bus&&S.routes.length)alts='<div class="card" style="margin-top:10px">'+S.routes.map((r,i)=>`<button class="alt ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${fmtDur(r.dur)}</b><span>${fmtDist(r.dist)}${r.label?' · '+esc(r.label):''}${r.source==='google'?' · Google':''}</span></div><div class="radio"></div></button>`).join('')+'</div>';
   else alts=`<div class="empty" style="margin-top:10px">${noO?'Posizione non disponibile: scegli il punto di partenza.':bus?esc(S.busMsg||'Nessun bus trovato.'):'Nessun percorso trovato.'}</div>`;
   const has=!S.loading&&(bus?!!S.routes[S.sel]:S.routes.length>0);
@@ -458,7 +461,7 @@ function vPlan(){
   ${bus?`<div class="seg"><button class="${P==='primo'?'on':''}" data-act="pref" data-p="primo">Primo bus<small>entro 10 min a piedi</small></button><button class="${P==='vicino'?'on':''}" data-act="pref" data-p="vicino">Fermata più vicina<small>anche se c'è da aspettare</small></button></div>`:''}
   ${!bus&&S.vias.length?`<div class="chips">${S.vias.map((v,i)=>`<button class="chip" data-act="rmvia" data-i="${i}">Tappa ${i+1} ✕</button>`).join('')}</div>`:''}
   ${alts}
-  ${has?(bus?`<div class="hint">Orari ufficiali Busitalia (rete urbana di Perugia); dove c'è scritto «circa» l'orario alla fermata è stimato. Solo bus diretti, senza cambi.</div>
+  ${has?(bus?`<div class="hint">Orari ufficiali Busitalia (rete urbana di Perugia); dove c'è scritto «circa» l'orario alla fermata è stimato. I percorsi con un cambio compaiono solo se non c'è un diretto o se fanno arrivare almeno 10 minuti prima.</div>
   <div class="btns"><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>`
   :`<div class="hint">Tocca la mappa per aggiungere una tappa e forzare la strada che preferisci. Le tappe si possono trascinare; toccale per rimuoverle.</div>
   <div class="btns"><button class="btn" data-act="save">Salva tratta</button><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>`)+(gm?`<a class="ext" href="${esc(gm)}" target="_blank" rel="noopener">Apri questo percorso in Google Maps ↗</a>`:''):''}`;
@@ -543,10 +546,17 @@ async function ensureBus(i){
   const [w1,w2]=await Promise.all([footRoute(o,[it.board.lng,it.board.lat]),footRoute([it.alight.lng,it.alight.lat],[S.dest.lng,S.dest.lat])]);
   // sostituisco le stime in linea d'aria con i tempi reali a piedi
   it.walk1=w1.dur/60;it.walk2=w2.dur/60;it.wait=Math.max(0,it.board.t-nowM-it.walk1);it.arr=it.alight.t+it.walk2;it.dur=it.arr-nowM;
-  const raw=[];
-  w1.raw.forEach((s,k)=>{if(k===0){s.type='walk';s.silent=false;s.text=`Cammina fino alla fermata ${it.board.name} (${fmtDist(w1.dist)}, ${fmtDur(w1.dur)})`}else if(s.type==='arrive')s.silent=true;raw.push(s)});
-  raw.push({coords:Bus.legCoords(it),type:'bus',dur:Math.max(60,(it.alight.t-nowM)*60-w1.dur),text:`Sali sulla linea ${it.line} direzione ${it.to} alle ${Bus.hhmm(it.board.t)}${it.board.exact?'':' circa'} · fermata ${it.board.name}`});
-  w2.raw.forEach((s,k)=>{if(k===0){s.type='busoff';s.silent=false;s.text=`Scendi a ${it.alight.name} alle ${Bus.hhmm(it.alight.t)}${it.alight.exact?'':' circa'} (${it.nStops} fermate), poi ${fmtDist(w2.dist)} a piedi`}raw.push(s)});
+  const raw=[],ca=x=>x.exact?'':' circa',f=it.legs[0],l=it.legs[it.legs.length-1],x2=it.legs[1];
+  w1.raw.forEach((s,k)=>{if(k===0){s.type='walk';s.silent=false;s.text=`Cammina fino alla fermata ${f.board.name} (${fmtDist(w1.dist)}, ${fmtDur(w1.dur)})`}else if(s.type==='arrive')s.silent=true;raw.push(s)});
+  raw.push({coords:Bus.legCoords(f),type:'bus',dur:Math.max(60,(f.alight.t-nowM)*60-w1.dur),text:`Sali sulla linea ${f.line} direzione ${f.to} alle ${Bus.hhmm(f.board.t)}${ca(f.board)} · fermata ${f.board.name}`});
+  if(x2){
+    const sali=`linea ${x2.line} direzione ${x2.to} alle ${Bus.hhmm(x2.board.t)}${ca(x2.board)}`,walkX=it.xdist>30,ride=(x2.alight.t-f.alight.t)*60;
+    if(walkX){   // le due fermate sono distinte: scendo, cammino, risalgo
+      raw.push({coords:[[f.alight.lng,f.alight.lat],[x2.board.lng,x2.board.lat]],type:'busoff',dur:it.xwalk*60,text:`Scendi a ${f.alight.name} alle ${Bus.hhmm(f.alight.t)}${ca(f.alight)} e raggiungi la fermata ${x2.board.name} (${fmtDist(it.xdist)} a piedi)`});
+      raw.push({coords:Bus.legCoords(x2),type:'bus',dur:Math.max(60,ride-it.xwalk*60),text:`Cambio: sali sulla ${sali} · fermata ${x2.board.name}`});
+    }else raw.push({coords:Bus.legCoords(x2),type:'bus',dur:Math.max(60,ride),text:`Cambio a ${f.alight.name}: scendi alle ${Bus.hhmm(f.alight.t)}${ca(f.alight)} e sali sulla ${sali}, stessa fermata`});
+  }
+  w2.raw.forEach((s,k)=>{if(k===0){s.type='busoff';s.silent=false;s.text=`Scendi a ${l.alight.name} alle ${Bus.hhmm(l.alight.t)}${ca(l.alight)}, poi ${fmtDist(w2.dist)} a piedi`}raw.push(s)});
   const r=buildRoute(raw,0,'Linea '+it.line,'bus');r.transit=true;S.routes[i]=r;
 }
 async function computeBus(){
