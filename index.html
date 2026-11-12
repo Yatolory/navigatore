@@ -128,6 +128,9 @@ body.nav #fabs{top:auto;bottom:calc(96px + env(safe-area-inset-bottom))}
 .me svg{display:none}.me.arrow svg{display:block}
 .pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--navy);border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.3)}
 .pin.o{background:var(--sky)}
+.pk{width:26px;height:26px;border-radius:8px;background:var(--blue);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:pointer}
+.pk.t{background:var(--navy)}
+.row.park{align-items:flex-start}.row.park .tx span{white-space:normal}.row.park .fee{color:var(--navy);font-weight:700}
 .via{width:18px;height:18px;border-radius:50%;background:#fff;border:5px solid var(--blue);box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:grab}
 .maplibregl-ctrl-bottom-right{opacity:.6}
 .maplibregl-popup-content{border-radius:14px;padding:12px 30px 12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.22);font:inherit}
@@ -229,6 +232,7 @@ const IC={
   walk:'<circle cx="13" cy="4.500" r="1.700"/><path d="M12.500 8.500v6l-3 6M12.500 14.500l3.500 5.500M8.500 11.800l4-3.300 3.500 3"/>',
   swap:'<path d="M8 4v16M4.500 16.500 8 20l3.500-3.500M16 20V4M12.500 7.500 16 4l3.500 3.500"/>',
   warn:'<path d="M12 4 2.800 19.500h18.400z"/><path d="M12 10v4.500M12 17v.2"/>',
+  park:'<path d="M8.500 20V4.500H13a4.500 4.500 0 0 1 0 9H8.500"/>',
   ext:'<path d="M9.500 6H18v8.500M18 6 7 17"/>',
 };
 const ic=(n,f)=>`<svg class="i${f?' f':''}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
@@ -294,6 +298,7 @@ function draw(){
   if(pts){
     if(pts.origin&&!S.nav)mk('pin o',pts.origin);
     if(pts.dest)mk('pin',pts.dest);
+    if(S.mode==='plan'&&Array.isArray(S.parks)&&parksOn())S.parks.forEach(p=>{const m=mk('pk'+(p.tar?' t':''),p);m.getElement().textContent='P';m.getElement().title=p.name+' — '+feeText(p);m.getElement().addEventListener('click',e=>{e.stopPropagation();toast(p.name+' · '+feeText(p))})});
     if(S.mode==='plan')S.vias.forEach((v,i)=>{
       const m=mk('via',v,{draggable:true});
       m.on('dragend',()=>{const l=m.getLngLat();v.lng=l.lng;v.lat=l.lat;computeRoutes()});
@@ -420,11 +425,16 @@ async function osrmRoutes(pts,alts){
 }
 async function osmSearch(q){
   const c=S.me||map.getCenter().toArray();
-  const j=await(await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=7&lat=${c[1].toFixed(3)}&lon=${c[0].toFixed(3)}`)).json();
-  return j.features.map(f=>{const p=f.properties,street=[p.street,p.housenumber].filter(Boolean).join(' ');
-    const name=p.name||street||p.city||q;
-    const sub=[p.name?street:'',p.city||p.county,p.state,p.country].filter((x,i,a)=>x&&x!==name&&a.indexOf(x)===i).join(', ');
-    return{name,sub,lng:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]}});
+  try{
+    const j=await(await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=7&lat=${c[1].toFixed(3)}&lon=${c[0].toFixed(3)}`,{signal:AbortSignal.timeout(6000)})).json();
+    return j.features.map(f=>{const p=f.properties,street=[p.street,p.housenumber].filter(Boolean).join(' ');
+      const name=p.name||street||p.city||q;
+      const sub=[p.name?street:'',p.city||p.county,p.state,p.country].filter((x,i,a)=>x&&x!==name&&a.indexOf(x)===i).join(', ');
+      return{name,sub,lng:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]}});
+  }catch(e){   // ricerca di riserva se il primo servizio non risponde
+    const j=await(await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=jsonv2&limit=7&accept-language=it&viewbox=${(c[0]-.4).toFixed(2)},${(c[1]+.3).toFixed(2)},${(c[0]+.4).toFixed(2)},${(c[1]-.3).toFixed(2)}`,{signal:AbortSignal.timeout(8000)})).json();
+    return j.map(x=>{const parts=x.display_name.split(', ');return{name:x.name||parts[0],sub:parts.slice(x.name?1:1,5).join(', '),lng:+x.lon,lat:+x.lat}});
+  }
 }
 
 /* ---------- fornitori: Google Maps ---------- */
@@ -580,7 +590,7 @@ function vPlan(){
     <button class="row" data-act="pick" data-f="dest"><i class="dot d"></i><span class="l">A</span><b>${esc(S.dest?.name||'Scegli…')}</b></button>
     <button class="swap" data-act="swap" title="Inverti">${ic('swap')}</button>
   </div>
-  ${S.dest?`<div class="chips"><button class="chip" data-act="favdest" style="color:var(--blue);font-weight:600">${places.some(p=>samePlace(p,S.dest))?ic('star',1)+' Destinazione salvata':ic('star')+' Salva destinazione'}</button></div>`:''}
+  ${S.dest?`<div class="chips"><button class="chip" data-act="favdest" style="color:var(--blue);font-weight:600">${places.some(p=>samePlace(p,S.dest))?ic('star',1)+' Destinazione salvata':ic('star')+' Salva destinazione'}</button><button class="chip" data-act="parks" style="color:var(--blue);font-weight:600">${ic('park')} ${parksOn()?'Nascondi parcheggi':'Parcheggi vicini'}</button></div>`:''}
   <div class="seg"><button class="${bus?'':'on'}" data-act="tmode" data-m="car">${ic('car')} Auto</button><button class="${bus?'on':''}" data-act="tmode" data-m="bus">${ic('bus')} Bus</button></div>
   ${bus?`<div class="seg"><button class="${P==='primo'?'on':''}" data-act="pref" data-p="primo">Primo bus<small>entro 10 min a piedi</small></button><button class="${P==='vicino'?'on':''}" data-act="pref" data-p="vicino">Fermata più vicina<small>anche se c'è da aspettare</small></button></div>`:''}
   ${!bus&&S.vias.length?`<div class="chips">${S.vias.map((v,i)=>`<button class="chip" data-act="rmvia" data-i="${i}">Tappa ${i+1} ${ic('x')}</button>`).join('')}</div>`:''}
@@ -588,7 +598,48 @@ function vPlan(){
   ${has?(bus?`<div class="hint">Orari ufficiali Busitalia (rete urbana di Perugia); dove c'è scritto «circa» l'orario alla fermata è stimato. I percorsi con un cambio compaiono solo se non c'è un diretto o se fanno arrivare almeno 10 minuti prima.</div>
   <div class="btns"><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>`
   :`<div class="hint">Tocca la mappa per aggiungere una tappa e forzare la strada che preferisci. Le tappe si possono trascinare; toccale per rimuoverle.</div>
-  <div class="btns"><button class="btn" data-act="save">Salva tratta</button><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>`)+(gm?`<a class="ext" href="${esc(gm)}" target="_blank" rel="noopener">Apri questo percorso in Google Maps ${ic('ext')}</a>`:''):''}`;
+  <div class="btns"><button class="btn" data-act="save">Salva tratta</button><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>`)+(gm?`<a class="ext" href="${esc(gm)}" target="_blank" rel="noopener">Apri questo percorso in Google Maps ${ic('ext')}</a>`:''):''}${vParks()}`;
+}
+/* ---------- parcheggi vicino alla destinazione ----------
+   Posizioni da OpenStreetMap; tariffe dei parcheggi Saba dalle pagine ufficiali sabait.it (lette il 12/11/2026). */
+const SABA='https://www.sabait.it/it/parcheggio-perugia/parcheggio-saba-';
+const TARIFFE=[
+  {k:/partigiani/i,nome:'Saba Piazza Partigiani',lat:43.10535,lng:12.387,da:'1,90',url:SABA+'partigiani',righe:['1ª ora 1,90 € · dalla 2ª ora 2,40 €/ora','Dalle 15 alle 20: 1ª ora 1,50 €, poi 1,90 €/ora','Forfait sera 20–02: 3,30 €','Massimo giornaliero 23,00 €']},
+  {k:/mercato coperto/i,nome:'Saba Mercato Coperto',lat:43.11134,lng:12.39068,da:'2,40',url:SABA+'mercato-coperto',righe:['1ª ora 2,40 € · dalla 2ª ora 3,10 €/ora','Dalle 15 alle 23: 1ª ora 1,90 €, poi 2,50 €/ora','Aperto 24 ore · altezza massima 2,05 m']},
+  {k:/europa/i,nome:'Saba Piazzale Europa',lat:43.10478,lng:12.38969,da:'1,40',url:SABA+'piazzale-europa',righe:['1ª ora 1,40 € · dalla 2ª ora 1,90 €/ora','Dalle 15 alle 20: 1ª ora 1,10 €, poi 1,50 €/ora','Forfait sera 20–02: 3,30 €','Massimo giornaliero 20,00 €']},
+  {k:/meana/i,nome:'Saba Via Ripa di Meana',lat:43.10754,lng:12.39218,circa:1,da:'1,90',url:SABA+'ripa-di-meana',righe:['1,90 €/ora · dalla 3ª ora 2,10 €/ora','Dalle 15 alle 20: 1,50 €/ora','Forfait sera 20–02: 3,30 €','Massimo giornaliero 20,00 €']},
+  {k:/pellini/i,nome:'Saba Viale Pellini',lat:43.10988,lng:12.38297,circa:1,da:'1,90',url:SABA+'pellini',righe:['1,90 €/ora · dalla 3ª ora 2,40 €/ora','Dalle 15 alle 20: 1ª ora 1,50 €, poi 1,90 €/ora','Forfait sera 20–02: 3,30 €','Massimo giornaliero 20,00 €']},
+  {k:/sant.?\s?antonio|s\.\s?antonio/i,nome:"Saba Sant'Antonio",lat:43.11463,lng:12.39134,da:'1,90',url:SABA+'sant-antonio',righe:['1,90 €/ora · dalla 3ª ora 2,10 €/ora','Dalle 15 alle 20: 1,50 €/ora','Forfait sera 20–02: 3,30 €','Massimo giornaliero 20,00 €']},
+];
+const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+const parksOn=()=>S.parks&&S.parkDest===S.dest;
+async function loadParks(){
+  const d=S.dest,D=[d.lng,d.lat];S.parkDest=d;S.parks='loading';render();
+  // i parcheggi Saba di Perugia sono nella pagina: compaiono anche se OpenStreetMap non risponde
+  const saba=TARIFFE.map(t=>({lat:t.lat,lng:t.lng,t:{},name:t.nome,tar:t,d:hav([t.lng,t.lat],D)})).filter(p=>p.d<1500);
+  const q=`[out:json][timeout:20];nwr["amenity"="parking"]["access"!~"^(private|no|customers|permit)$"](around:900,${d.lat},${d.lng});out center tags 80;`;
+  let els=null;
+  for(const H of OVERPASS){try{const r=await fetch(H,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:AbortSignal.timeout(9000)});const t=await r.text();if(t[0]==='{'){els=JSON.parse(t).elements;break}}catch(e){}}
+  if(S.parkDest!==d||S.dest!==d)return;
+  S.parksPartial=!els;
+  if(!els&&!saba.length){S.parks=null;toast('Non riesco a caricare i parcheggi: riprova tra poco');return render()}
+  const KIND={'multi-storey':'Parcheggio multipiano',underground:'Parcheggio sotterraneo',street_side:'Parcheggio in strada',lane:'Parcheggio in strada',surface:'Parcheggio'};
+  let all=(els||[]).map(e=>{const lat=e.lat??e.center?.lat,lng=e.lon??e.center?.lon,t=e.tags||{};return{lat,lng,t,name:t.name||KIND[t.parking]||'Parcheggio',d:lat?hav([lng,lat],D):1e9}}).filter(p=>p.lat&&!saba.some(x=>hav([x.lng,x.lat],[p.lng,p.lat])<130||x.tar.k.test(p.t.name||'')));
+  const main=all.filter(p=>p.t.name||+p.t.capacity>=15);
+  S.parks=saba.concat(main.length>=3||saba.length?main:all).sort((a,b)=>a.d-b.d).slice(0,8);render();draw();
+}
+function feeText(p){
+  const t=p.t;if(p.tar)return`Da ${p.tar.da} €/ora (tariffa ufficiale Saba)`;
+  if(t.fee==='no')return'Gratuito';if(t.charge)return'A pagamento: '+t.charge;if(t.fee&&t.fee!=='no')return'A pagamento, tariffa non disponibile';return'Tariffa non indicata';
+}
+function vParks(){
+  if(!parksOn())return'';
+  if(S.parks==='loading')return'<h3>Parcheggi vicini</h3><div class="spin"></div>';
+  if(!S.parks.length)return'<h3>Parcheggi vicini</h3><div class="empty">Nessun parcheggio pubblico trovato entro 900 m dalla destinazione.</div>';
+  return`<h3>Parcheggi vicini</h3><div class="card">${S.parks.map((p,i)=>`<div class="row park"><div class="ic${p.tar?' g':''}">${ic('park')}</div><div class="tx"><b>${esc(p.name)}</b>
+    <span>${fmtDist(p.d)} dalla destinazione · ${Math.max(1,Math.round(p.d*1.3/75))} min a piedi${p.t.capacity?' · '+esc(p.t.capacity)+' posti':''}${p.tar?.circa?' · posizione indicativa':''}</span>
+    <span class="fee">${esc(feeText(p))}</span>${p.tar?`<span>${p.tar.righe.join('<br>')}</span>`:''}</div><button class="pill" data-act="gopark" data-i="${i}">Vai</button></div>`).join('')}</div>
+  <div class="hint">${S.parksPartial?'OpenStreetMap non risponde: per ora vedi solo i parcheggi Saba. ':''}Tariffe Saba lette dal sito ufficiale sabait.it il 12/11/2026: il forfait serale non vale durante Eurochocolate e Umbria Jazz, e le auto a GPL non sono ammesse. Posizioni e altri dati da OpenStreetMap; per i parcheggi senza tariffa controlla sul posto.</div>`;
 }
 function vEdit(){
   const e=S.editing,r=e.route;
@@ -629,6 +680,8 @@ panel.addEventListener('click',e=>{
     curpos(){S.origin=null;S.pick=false;S.results=null;S.q='';S.mode='plan';computeRoutes()},
     unpick(){S.pick=false;S.results=null;S.q='';S.mode='plan';render()},
     home:goHome,
+    parks(){if(parksOn()){S.parks=null;render();draw()}else loadParks()},
+    gopark(){const p=S.parks[i];S.dest={name:p.name,sub:'Parcheggio',lng:p.lng,lat:p.lat};S.parks=null;S.tmode='car';computeRoutes()},
     favdest(){const k=places.findIndex(p=>samePlace(p,S.dest));if(k>=0)places.splice(k,1);else places.unshift({name:S.dest.name,sub:S.dest.sub||'',lng:S.dest.lng,lat:S.dest.lat});store.set('nav.places',places);toast(k>=0?'Destinazione rimossa':'Destinazione salvata');render()},
     goplace(){S.dest={...places[i]};S.origin=null;S.vias=[];S.field='dest';S.mode='plan';computeRoutes()},
     pickplace(){S[S.field==='origin'?'origin':'dest']={...places[i]};S.pick=false;S.results=null;S.q='';S.mode='plan';computeRoutes()},
@@ -661,7 +714,7 @@ function persistEditing(){
   const rec={id:e.id,name:e.name.trim()||'Tratta',points:e.points,coords:r.coords,steps:r.steps.filter(s=>s.text.trim()),tl:r.tl,dist:r.dist,dur:r.dur};
   const k=saved.findIndex(x=>x.id===e.id);if(k>=0)saved[k]=rec;else saved.unshift(rec);store.set('nav.routes',saved);
 }
-function goHome(){Object.assign(S,{mode:'home',pick:false,results:null,q:'',origin:null,dest:null,vias:[],routes:[],editing:null,field:'dest',renaming:null,renamingR:null});render();draw()}
+function goHome(){Object.assign(S,{mode:'home',pick:false,results:null,q:'',origin:null,dest:null,vias:[],routes:[],editing:null,field:'dest',renaming:null,renamingR:null,parks:null});render();draw()}
 let routeN=0;
 async function footRoute(a,b){
   try{const j=await(await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${a[0].toFixed(6)},${a[1].toFixed(6)};${b[0].toFixed(6)},${b[1].toFixed(6)}?overview=false&steps=true&geometries=geojson`)).json();
