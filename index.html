@@ -54,6 +54,13 @@ button{cursor:pointer;border:0;background:none;padding:0}
 .alt .tx{flex:1}
 .alt .radio{width:22px;height:22px;border-radius:50%;border:2px solid #c7c7cc;flex:none}
 .alt.on .radio{border:7px solid var(--blue)}
+.seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;margin-top:10px}
+.seg button{flex:1;min-height:34px;border-radius:8px;font-size:14px;font-weight:600;padding:4px 6px;line-height:1.15}
+.seg button small{display:block;font-weight:400;font-size:11px;color:var(--sub)}
+.seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16)}
+.lb{display:inline-block;background:#a3122a;color:#fff;border-radius:6px;padding:0 7px;font-weight:700;font-style:normal}
+.alt span b{font-size:inherit;letter-spacing:0}
+.alt.bus span{margin-top:3px;line-height:1.3}
 .btns{display:flex;gap:8px;margin-top:12px}
 .btn{flex:1;height:48px;border-radius:13px;font-weight:600;font-size:17px;background:var(--fill);color:var(--blue)}
 .btn.go{background:var(--green);color:#fff;flex:1.4}
@@ -167,13 +174,14 @@ dialog p{font-size:13px;color:var(--sub);line-height:1.45;margin:8px 0}
   <div class="btns"><button class="btn" id="sCancel">Annulla</button><button class="btn pri" id="sSave">Salva</button></div>
 </dialog>
 
+<script src="bus.js"></script>
 <script>
 /* ---------- utilità ---------- */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{toast('Memoria del browser piena')}}};
 let saved=store.get('nav.routes',[]);
-let settings=Object.assign({gkey:'',useGoogle:false,voice:true},store.get('nav.settings',{}));
+let settings=Object.assign({gkey:'',useGoogle:false,voice:true,busPref:'primo'},store.get('nav.settings',{}));
 const R=6371000,rad=d=>d*Math.PI/180;
 function hav(a,b){const dLat=rad(b[1]-a[1]),dLng=rad(b[0]-a[0]),s=Math.sin(dLat/2)**2+Math.cos(rad(a[1]))*Math.cos(rad(b[1]))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s))}
 function bearing(a,b){const y=Math.sin(rad(b[0]-a[0]))*Math.cos(rad(b[1])),x=Math.cos(rad(a[1]))*Math.sin(rad(b[1]))-Math.sin(rad(a[1]))*Math.cos(rad(b[1]))*Math.cos(rad(b[0]-a[0]));return(Math.atan2(y,x)*180/Math.PI+360)%360}
@@ -184,10 +192,10 @@ let toastT;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add
 const desktop=()=>matchMedia('(min-width:720px)').matches;
 
 /* ---------- icone manovra ---------- */
-const TYPES={straight:'Dritto',left:'Sinistra',right:'Destra','slight-left':'Leggermente a sinistra','slight-right':'Leggermente a destra','sharp-left':'Tutto a sinistra','sharp-right':'Tutto a destra',uturn:'Inversione a U',roundabout:'Rotonda',merge:'Immissione','fork-left':'Bivio a sinistra','fork-right':'Bivio a destra',note:'Nota',depart:'Partenza',arrive:'Arrivo'};
+const TYPES={straight:'Dritto',left:'Sinistra',right:'Destra','slight-left':'Leggermente a sinistra','slight-right':'Leggermente a destra','sharp-left':'Tutto a sinistra','sharp-right':'Tutto a destra',uturn:'Inversione a U',roundabout:'Rotonda',merge:'Immissione','fork-left':'Bivio a sinistra','fork-right':'Bivio a destra',note:'Nota',walk:'A piedi',bus:'Sali sul bus',busoff:'Scendi dal bus',depart:'Partenza',arrive:'Arrivo'};
 function icon(type,exit){
-  const P={straight:'M24 40V10M12 22 24 10l12 12',right:'M16 40V24q0-6 6-6h14M28 10l8 8-8 8','slight-right':'M20 40V28l12-14M21 13h12v12','sharp-right':'M18 40V14l14 16M32 18v12H20',merge:'M24 40V10M12 22 24 10l12 12M36 40c0-8-12-8-12-16','fork-right':'M24 40V28l10-14M24 28 14 14M25 13h10v10',uturn:'M34 40V20a9 9 0 0 0-18 0v14M9 27l7 7 7-7',note:'M24 11v17M24 36v1',arrive:'M24 42s12-11 12-21a12 12 0 1 0-24 0c0 10 12 21 12 21zM24 17a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'};
-  let t=type==='depart'?'straight':type,mirror=false,body;
+  const P={straight:'M24 40V10M12 22 24 10l12 12',right:'M16 40V24q0-6 6-6h14M28 10l8 8-8 8','slight-right':'M20 40V28l12-14M21 13h12v12','sharp-right':'M18 40V14l14 16M32 18v12H20',merge:'M24 40V10M12 22 24 10l12 12M36 40c0-8-12-8-12-16','fork-right':'M24 40V28l10-14M24 28 14 14M25 13h10v10',uturn:'M34 40V20a9 9 0 0 0-18 0v14M9 27l7 7 7-7',note:'M24 11v17M24 36v1',bus:'M13 10h22a3 3 0 0 1 3 3v20H10V13a3 3 0 0 1 3-3zM10 23h28M16 39v-6M32 39v-6',walk:'M25 8v1M24 17v11l-6 12M24 28l7 11M16 23l8-6 7 6',arrive:'M24 42s12-11 12-21a12 12 0 1 0-24 0c0 10 12 21 12 21zM24 17a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'};
+  let t=type==='depart'?'straight':type==='busoff'?'bus':type,mirror=false,body;
   if(/-left$|^left$/.test(t)){mirror=true;t=t.replace('left','right')}
   if(t==='roundabout')body=`<circle cx="24" cy="21" r="9"/><path d="M24 41V30"/>${exit?`<text x="24" y="26" text-anchor="middle" font-size="13" font-weight="800" fill="currentColor" stroke="none">${exit}</text>`:''}`;
   else body=`<path d="${P[t]||P.straight}"/>`;
@@ -196,7 +204,7 @@ function icon(type,exit){
 }
 
 /* ---------- stato ---------- */
-const S={mode:'home',me:null,origin:null,dest:null,vias:[],routes:[],sel:0,field:'dest',pick:false,loading:false,editing:null,nav:null,results:null,q:''};
+const S={mode:'home',me:null,origin:null,dest:null,vias:[],routes:[],sel:0,field:'dest',pick:false,loading:false,editing:null,nav:null,results:null,q:'',tmode:'car',its:[],busMsg:''};
 
 /* ---------- mappa ---------- */
 const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:[12.4964,41.9028],zoom:5.4,attributionControl:{compact:true},maxPitch:80,minZoom:0});
@@ -249,7 +257,7 @@ function fit(r=shownRoute()){
 }
 map.on('click',e=>{
   const p=[e.lngLat.lng,e.lngLat.lat];
-  if(S.mode==='plan'&&S.routes.length){
+  if(S.mode==='plan'&&S.routes.length&&S.tmode==='car'){
     const f=map.queryRenderedFeatures(e.point,{layers:['alt','alt-c']})[0];
     if(f){S.sel=f.properties.i;render();draw();return}
     const cur=S.routes[S.sel],v={name:'Tappa',lng:p[0],lat:p[1]};
@@ -423,22 +431,32 @@ function vHome(){
   ${S.pick||S.results?'':`<h3>Le mie tratte</h3>${list}`}`;
 }
 function vPlan(){
-  const o=S.origin?S.origin.name:S.me?'Posizione attuale':'Scegli la partenza…';
-  const alts=S.loading?'<div class="spin"></div>':S.routes.length?'<div class="card" style="margin-top:10px">'+S.routes.map((r,i)=>`<button class="alt ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${fmtDur(r.dur)}</b><span>${fmtDist(r.dist)}${r.label?' · '+esc(r.label):''}${r.source==='google'?' · Google':''}</span></div><div class="radio"></div></button>`).join('')+'</div>'
-    :`<div class="empty" style="margin-top:10px">${!S.origin&&!S.me?'Posizione non disponibile: scegli il punto di partenza.':'Nessun percorso trovato.'}</div>`;
-  const has=S.routes.length&&!S.loading,cur=S.routes[S.sel];
-  const gm=S.dest&&(S.origin||S.me)?`https://www.google.com/maps/dir/?api=1&origin=${S.origin?S.origin.lat+','+S.origin.lng:S.me[1]+','+S.me[0]}&destination=${S.dest.lat},${S.dest.lng}${S.vias.length?'&waypoints='+S.vias.map(v=>v.lat.toFixed(5)+','+v.lng.toFixed(5)).join('|'):''}&travelmode=driving`:'';
+  const o=S.origin?S.origin.name:S.me?'Posizione attuale':'Scegli la partenza…',bus=S.tmode==='bus',noO=!S.origin&&!S.me;
+  let alts;
+  if(S.loading)alts='<div class="spin"></div>';
+  else if(bus&&S.its.length)alts='<div class="card" style="margin-top:10px">'+S.its.map((it,i)=>`<button class="alt bus ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${Bus.hhmm(it.board.t-it.walk1)} → ${Bus.hhmm(it.arr)}</b>
+      <span><i class="lb">${esc(it.line)}</i> direzione ${esc(it.to)} · ${fmtDur(it.dur*60)} in tutto</span>
+      <span>Sali a <b>${esc(it.board.name)}</b> alle <b>${Bus.hhmm(it.board.t)}</b>${it.board.exact?'':' circa'} · ${Math.max(1,Math.round(it.walk1))} min a piedi, ${Math.max(0,Math.round(it.wait))} min di attesa</span>
+      <span>Scendi a <b>${esc(it.alight.name)}</b> alle <b>${Bus.hhmm(it.alight.t)}</b>${it.alight.exact?'':' circa'} · ${it.nStops} fermate, poi ${Math.max(1,Math.round(it.walk2))} min a piedi</span></div><div class="radio"></div></button>`).join('')+'</div>';
+  else if(!bus&&S.routes.length)alts='<div class="card" style="margin-top:10px">'+S.routes.map((r,i)=>`<button class="alt ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${fmtDur(r.dur)}</b><span>${fmtDist(r.dist)}${r.label?' · '+esc(r.label):''}${r.source==='google'?' · Google':''}</span></div><div class="radio"></div></button>`).join('')+'</div>';
+  else alts=`<div class="empty" style="margin-top:10px">${noO?'Posizione non disponibile: scegli il punto di partenza.':bus?esc(S.busMsg||'Nessun bus trovato.'):'Nessun percorso trovato.'}</div>`;
+  const has=!S.loading&&(bus?!!S.routes[S.sel]:S.routes.length>0);
+  const gm=S.dest&&!noO?`https://www.google.com/maps/dir/?api=1&origin=${S.origin?S.origin.lat+','+S.origin.lng:S.me[1]+','+S.me[0]}&destination=${S.dest.lat},${S.dest.lng}${!bus&&S.vias.length?'&waypoints='+S.vias.map(v=>v.lat.toFixed(5)+','+v.lng.toFixed(5)).join('|'):''}&travelmode=${bus?'transit':'driving'}`:'';
+  const P=settings.busPref;
   return`<div class="head"><b>Indicazioni</b><button class="x" data-act="home">✕</button></div>
   <div class="card od">
     <button class="row" data-act="pick" data-f="origin"><i class="dot"></i><span class="l">Da</span><b>${esc(o)}</b></button>
     <button class="row" data-act="pick" data-f="dest"><i class="dot d"></i><span class="l">A</span><b>${esc(S.dest?.name||'Scegli…')}</b></button>
     <button class="swap" data-act="swap" title="Inverti">⇅</button>
   </div>
-  ${S.vias.length?`<div class="chips">${S.vias.map((v,i)=>`<button class="chip" data-act="rmvia" data-i="${i}">Tappa ${i+1} ✕</button>`).join('')}</div>`:''}
+  <div class="seg"><button class="${bus?'':'on'}" data-act="tmode" data-m="car">🚗 Auto</button><button class="${bus?'on':''}" data-act="tmode" data-m="bus">🚌 Bus</button></div>
+  ${bus?`<div class="seg"><button class="${P==='primo'?'on':''}" data-act="pref" data-p="primo">Primo bus<small>entro 10 min a piedi</small></button><button class="${P==='vicino'?'on':''}" data-act="pref" data-p="vicino">Fermata più vicina<small>anche se c'è da aspettare</small></button></div>`:''}
+  ${!bus&&S.vias.length?`<div class="chips">${S.vias.map((v,i)=>`<button class="chip" data-act="rmvia" data-i="${i}">Tappa ${i+1} ✕</button>`).join('')}</div>`:''}
   ${alts}
-  ${has?`<div class="hint">Tocca la mappa per aggiungere una tappa e forzare la strada che preferisci. Le tappe si possono trascinare; toccale per rimuoverle.</div>
-  <div class="btns"><button class="btn" data-act="save">Salva tratta</button><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>
-  ${gm?`<a class="ext" href="${esc(gm)}" target="_blank" rel="noopener">Apri questo percorso in Google Maps ↗</a>`:''}`:''}`;
+  ${has?(bus?`<div class="hint">Orari ufficiali Busitalia (rete urbana di Perugia); dove c'è scritto «circa» l'orario alla fermata è stimato. Solo bus diretti, senza cambi.</div>
+  <div class="btns"><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>`
+  :`<div class="hint">Tocca la mappa per aggiungere una tappa e forzare la strada che preferisci. Le tappe si possono trascinare; toccale per rimuoverle.</div>
+  <div class="btns"><button class="btn" data-act="save">Salva tratta</button><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>`)+(gm?`<a class="ext" href="${esc(gm)}" target="_blank" rel="noopener">Apri questo percorso in Google Maps ↗</a>`:''):''}`;
 }
 function vEdit(){
   const e=S.editing,r=e.route;
@@ -481,7 +499,9 @@ panel.addEventListener('click',e=>{
     pick(){S.field=b.dataset.f;S.pick=true;S.mode='home';S.results=null;S.q='';render()},
     swap(){if(!S.origin)return toast('Scegli prima un punto di partenza');[S.origin,S.dest]=[S.dest,S.origin];S.vias.reverse();computeRoutes()},
     rmvia(){S.vias.splice(i,1);computeRoutes()},
-    sel(){S.sel=i;render();draw()},
+    sel(){S.sel=i;render();draw();if(S.tmode==='bus'&&!S.routes[i])ensureBus(i).then(()=>{if(S.mode==='plan'&&S.sel===i){render();draw();fit()}})},
+    tmode(){S.tmode=b.dataset.m;computeRoutes()},
+    pref(){settings.busPref=b.dataset.p;store.set('nav.settings',settings);computeRoutes()},
     go(){startNav(S.routes[S.sel],{sim:false})},
     sim(){startNav(S.routes[S.sel],{sim:true})},
     save(){const r=S.routes[S.sel],o=S.origin||{name:'Partenza',lng:r.coords[0][0],lat:r.coords[0][1]};
@@ -502,7 +522,40 @@ function persistEditing(){
 }
 function goHome(){Object.assign(S,{mode:'home',pick:false,results:null,q:'',origin:null,dest:null,vias:[],routes:[],editing:null,field:'dest'});render();draw()}
 let routeN=0;
+async function footRoute(a,b){
+  try{const j=await(await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${a[0].toFixed(6)},${a[1].toFixed(6)};${b[0].toFixed(6)},${b[1].toFixed(6)}?overview=false&steps=true&geometries=geojson`)).json();
+    if(j.code!=='Ok')throw new Error(j.code);const r=j.routes[0];return{raw:r.legs[0].steps.map(s=>osrmStep(s,0,0)),dist:r.distance,dur:r.duration}}
+  catch(e){const d=hav(a,b)*1.3;return{raw:[{coords:[a,b],dur:d/1.25,type:'depart',text:''},{coords:[b],dur:0,type:'arrive',text:'Sei arrivato a destinazione'}],dist:d,dur:d/1.25}}
+}
+// costruisce il percorso completo: a piedi fino alla fermata, bus, a piedi fino a destinazione
+async function ensureBus(i){
+  if(S.routes[i]||!S.its[i])return;
+  const it=S.its[i],o=S.origin?[S.origin.lng,S.origin.lat]:S.me,d=new Date(),nowM=d.getHours()*60+d.getMinutes()+d.getSeconds()/60;
+  const [w1,w2]=await Promise.all([footRoute(o,[it.board.lng,it.board.lat]),footRoute([it.alight.lng,it.alight.lat],[S.dest.lng,S.dest.lat])]);
+  // sostituisco le stime in linea d'aria con i tempi reali a piedi
+  it.walk1=w1.dur/60;it.walk2=w2.dur/60;it.wait=Math.max(0,it.board.t-nowM-it.walk1);it.arr=it.alight.t+it.walk2;it.dur=it.arr-nowM;
+  const raw=[];
+  w1.raw.forEach((s,k)=>{if(k===0){s.type='walk';s.silent=false;s.text=`Cammina fino alla fermata ${it.board.name} (${fmtDist(w1.dist)}, ${fmtDur(w1.dur)})`}else if(s.type==='arrive')s.silent=true;raw.push(s)});
+  raw.push({coords:Bus.legCoords(it),type:'bus',dur:Math.max(60,(it.alight.t-nowM)*60-w1.dur),text:`Sali sulla linea ${it.line} direzione ${it.to} alle ${Bus.hhmm(it.board.t)}${it.board.exact?'':' circa'} · fermata ${it.board.name}`});
+  w2.raw.forEach((s,k)=>{if(k===0){s.type='busoff';s.silent=false;s.text=`Scendi a ${it.alight.name} alle ${Bus.hhmm(it.alight.t)}${it.alight.exact?'':' circa'} (${it.nStops} fermate), poi ${fmtDist(w2.dist)} a piedi`}raw.push(s)});
+  const r=buildRoute(raw,0,'Linea '+it.line,'bus');r.transit=true;S.routes[i]=r;
+}
+async function computeBus(){
+  const n=++routeN,o=S.origin||(S.me&&{lng:S.me[0],lat:S.me[1]});
+  S.routes=[];S.its=[];S.sel=0;S.busMsg='';S.loading=!!(o&&S.dest);render();draw();
+  if(!S.loading)return;
+  try{
+    if(!Bus.ready()){const[l,t]=await Promise.all(['lines.json','orari.json'].map(f=>fetch(f).then(r=>r.json())));Bus.load(l,t)}
+    const r=Bus.plan([o.lng,o.lat],[S.dest.lng,S.dest.lat],new Date(),settings.busPref);
+    if(n!==routeN)return;
+    S.its=r.list;
+    if(!r.list.length)S.busMsg=r.nearO>30||r.nearD>30?'I bus sono disponibili solo nella rete urbana di Perugia.':settings.busPref==='primo'&&r.nearO>10?'Nessuna fermata entro 10 minuti a piedi. Prova «Fermata più vicina».':'Nessun bus diretto per questa destinazione nelle prossime ore.';
+    else await ensureBus(0);
+  }catch(e){console.warn(e);S.busMsg='Non riesco a caricare gli orari dei bus.'}
+  if(n!==routeN)return;S.loading=false;render();draw();fit();
+}
 async function computeRoutes(){
+  if(S.tmode==='bus')return computeBus();
   const n=++routeN,o=S.origin||(S.me&&{lng:S.me[0],lat:S.me[1]});
   S.routes=[];S.sel=0;S.loading=!!(o&&S.dest);render();draw();
   if(!S.loading)return;
@@ -573,7 +626,7 @@ $('#recenter').onclick=()=>{if(S.nav){S.nav.follow=true;$('#recenter').hidden=tr
 function tick(pos,speed,gps,head){
   const n=S.nav;if(!n||n.busy)return;const r=n.route;
   let s=snap(r,pos,n.idx-3,n.idx+60);if(s.d>45)s=snap(r,pos);
-  if(gps){if(s.d>55){if(++n.off>=4)return reroute(pos)}else n.off=0}
+  if(gps&&!r.transit){if(s.d>55){if(++n.off>=4)return reroute(pos)}else n.off=0}
   const on=s.d<=55;if(on){n.idx=s.i;if(gps)n.along=s.along}
   const shown=on&&s.d<35?s.pt:pos,brg=on?s.brg:(head??map.getBearing());
   meMarker.setLngLat(shown).setRotation(brg).addTo(map);
