@@ -60,6 +60,7 @@ button{cursor:pointer;border:0;background:none;padding:0}
 .seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16)}
 .lb{display:inline-block;background:#a3122a;color:#fff;border-radius:6px;padding:0 7px;font-weight:700;font-style:normal}
 .alt span b{font-size:inherit;letter-spacing:0}
+.wk{font-style:normal;font-weight:700;color:#d9480f;white-space:nowrap}
 .alt.bus span{margin-top:3px;line-height:1.3}
 .btns{display:flex;gap:8px;margin-top:12px}
 .btn{flex:1;height:48px;border-radius:13px;font-weight:600;font-size:17px;background:var(--fill);color:var(--blue)}
@@ -517,10 +518,10 @@ function vPlan(){
   else if(bus&&S.its.length)alts='<div class="card" style="margin-top:10px">'+S.its.map((it,i)=>{
     const f=it.legs[0],l=it.legs[it.legs.length-1],ca=x=>x.exact?'':' circa',x2=it.legs[1];
     return`<button class="alt bus ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${Bus.hhmm(it.board.t-it.walk1)} → ${Bus.hhmm(it.arr)}</b>
-      <span>${it.legs.map(g=>`<i class="lb">${esc(g.line)}</i>`).join(' → ')} ${x2?'· 1 cambio':'direzione '+esc(f.to)} · ${fmtDur(it.dur*60)} in tutto</span>
-      <span>Sali a <b>${esc(f.board.name)}</b> alle <b>${Bus.hhmm(f.board.t)}</b>${ca(f.board)} · ${Math.max(1,Math.round(it.walk1))} min a piedi, ${Math.max(0,Math.round(it.wait))} min di attesa</span>
-      ${x2?`<span>Cambia a <b>${esc(f.alight.name)}</b> (arrivo ${Bus.hhmm(f.alight.t)}${ca(f.alight)}): linea <b>${esc(x2.line)}</b> direzione ${esc(x2.to)} alle <b>${Bus.hhmm(x2.board.t)}</b>${ca(x2.board)}${it.xdist>30?` dalla fermata <b>${esc(x2.board.name)}</b>, a ${fmtDist(it.xdist)}`:''}</span>`:''}
-      <span>Scendi a <b>${esc(l.alight.name)}</b> alle <b>${Bus.hhmm(l.alight.t)}</b>${ca(l.alight)} · poi ${Math.max(1,Math.round(it.walk2))} min a piedi</span></div><div class="radio"></div></button>`}).join('')+'</div>';
+      <span>${it.legs.map(g=>`<i class="lb">${esc(g.line)}</i>`).join(' → ')} ${x2?'· 1 cambio':'direzione '+esc(f.to)} · ${fmtDur(it.dur*60)} in tutto · <em class="wk">🚶 ${Math.max(1,Math.round(it.walk1+it.xwalk+it.walk2))} min a piedi</em></span>
+      <span>Sali a <b>${esc(f.board.name)}</b> alle <b>${Bus.hhmm(f.board.t)}</b>${ca(f.board)} · <em class="wk">${Math.max(1,Math.round(it.walk1))} min a piedi</em>, ${Math.max(0,Math.round(it.wait))} min di attesa</span>
+      ${x2?`<span>Cambia a <b>${esc(f.alight.name)}</b> (arrivo ${Bus.hhmm(f.alight.t)}${ca(f.alight)}): linea <b>${esc(x2.line)}</b> direzione ${esc(x2.to)} alle <b>${Bus.hhmm(x2.board.t)}</b>${ca(x2.board)}${it.xdist>30?` dalla fermata <b>${esc(x2.board.name)}</b>, a <em class="wk">${fmtDist(it.xdist)} a piedi</em>`:''}</span>`:''}
+      <span>Scendi a <b>${esc(l.alight.name)}</b> alle <b>${Bus.hhmm(l.alight.t)}</b>${ca(l.alight)} · poi <em class="wk">${Math.max(1,Math.round(it.walk2))} min a piedi</em></span></div><div class="radio"></div></button>`}).join('')+'</div>';
   else if(!bus&&S.routes.length)alts='<div class="card" style="margin-top:10px">'+S.routes.map((r,i)=>`<button class="alt ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${fmtDur(r.dur)}</b><span>${fmtDist(r.dist)}${r.label?' · '+esc(r.label):''}${r.source==='google'?' · Google':''}</span>${r.ztl?.length?`<span style="color:var(--red);font-weight:600">⚠︎ Entra nella ZTL attiva (${esc(r.ztl.slice(0,2).join(', '))}${r.ztl.length>2?'…':''}): serve il permesso</span>`:''}</div><div class="radio"></div></button>`).join('')+'</div>';
   else alts=`<div class="empty" style="margin-top:10px">${noO?'Posizione non disponibile: scegli il punto di partenza.':bus?esc(S.busMsg||'Nessun bus trovato.'):'Nessun percorso trovato.'}</div>`;
   const has=!S.loading&&(bus?!!S.routes[S.sel]:S.routes.length>0);
