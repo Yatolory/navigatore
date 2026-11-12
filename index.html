@@ -22,15 +22,15 @@ button{cursor:pointer;border:0;background:none;padding:0}
 #panel h3{font-size:20px;margin:18px 4px 8px;letter-spacing:-.2px}
 .head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .head b{font-size:20px;flex:1;letter-spacing:-.2px}
-.x{width:30px;height:30px;border-radius:50%;background:var(--fill);color:var(--sub);font-size:17px;line-height:30px;flex:none}
+.x{width:30px;height:30px;border-radius:50%;background:rgba(0,122,255,.1);color:var(--blue);display:grid;place-items:center;flex:none}
 .search{display:flex;align-items:center;gap:8px;background:var(--fill);border-radius:12px;padding:0 10px;height:40px}
 .search svg{flex:none;opacity:.5}
 .search input{flex:1;border:0;background:none;outline:0;font-size:17px;min-width:0}
-.gear{font-size:19px;opacity:.6}
+.gear{color:var(--blue);display:grid;place-items:center}.gear .i{width:21px;height:21px}
 .row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:.5px solid var(--line);width:100%;text-align:left}
 .row:last-child{border-bottom:0}
-.row .ic{width:34px;height:34px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;flex:none;font-size:15px}
-.row .ic.b{background:var(--blue)}.row .ic.g{background:var(--green)}
+.row .ic{width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;flex:none;font-size:15px}
+.row .ic.b{background:var(--sky)}.row .ic.g{background:var(--navy)}
 .row .tx{flex:1;min-width:0}
 .row .tx b{display:block;font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .tx span{display:block;font-size:13px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -39,11 +39,11 @@ button{cursor:pointer;border:0;background:none;padding:0}
 .empty{color:var(--sub);font-size:14px;padding:6px 4px 10px;line-height:1.4}
 .card{background:#fff;border-radius:14px;padding:2px 10px;box-shadow:0 0 0 .5px var(--line)}
 .od{position:relative}
-.od .row .dot{width:12px;height:12px;border-radius:50%;border:3px solid var(--blue);flex:none;margin:0 4px}
-.od .row .dot.d{border-color:var(--red)}
+.od .row .dot{width:12px;height:12px;border-radius:50%;border:3px solid var(--sky);flex:none;margin:0 4px}
+.od .row .dot.d{border-color:var(--navy)}
 .od .row span.l{color:var(--sub);font-size:13px;width:22px;flex:none}
 .od .row b{flex:1;font-weight:500;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.swap{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 0 0 .5px var(--line),0 2px 6px rgba(0,0,0,.1);color:var(--blue);font-size:16px}
+.swap{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 0 0 .5px var(--line),0 2px 6px rgba(0,0,0,.1);color:var(--blue);display:grid;place-items:center}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
 .chip{background:var(--fill);border-radius:999px;padding:5px 10px;font-size:13px}
 .hint{font-size:13px;color:var(--sub);margin:10px 4px;line-height:1.4}
@@ -58,7 +58,7 @@ button{cursor:pointer;border:0;background:none;padding:0}
 .seg button{flex:1;min-height:34px;border-radius:8px;font-size:14px;font-weight:600;padding:4px 6px;line-height:1.15}
 .seg button small{display:block;font-weight:400;font-size:11px;color:var(--sub)}
 .seg button.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.16)}
-.lb{display:inline-block;background:#a3122a;color:#fff;border-radius:6px;padding:0 7px;font-weight:700;font-style:normal}
+.lb{display:inline-block;background:var(--navy);color:#fff;border-radius:6px;padding:0 7px;font-weight:700;font-style:normal}
 .alt span b{font-size:inherit;letter-spacing:0}
 .wk{font-style:normal;font-weight:700;color:#d9480f;white-space:nowrap}
 .alt.bus span{margin-top:3px;line-height:1.3}
@@ -71,14 +71,14 @@ a.ext{display:block;text-align:center;font-size:13px;color:var(--blue);margin-to
 .field{width:100%;height:44px;border-radius:12px;border:0;background:#fff;box-shadow:0 0 0 .5px var(--line);padding:0 12px;font-size:17px;font-weight:600;outline:0}
 .step{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid var(--line)}
 .step:last-child{border-bottom:0}
-.sic{position:relative;width:38px;height:38px;border-radius:10px;background:var(--ink);color:#fff;flex:none;display:grid;place-items:center}
+.sic{position:relative;width:38px;height:38px;border-radius:10px;background:var(--navy);color:#fff;flex:none;display:grid;place-items:center}
 .sic svg{width:26px;height:26px}
 .sic select{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
 .step .mid{flex:1;min-width:0}
 .step textarea{width:100%;border:0;background:none;resize:none;outline:0;font-size:15px;line-height:1.3;padding:2px 0;font-weight:500;field-sizing:content;min-height:22px}
 .step textarea:focus{background:var(--fill);border-radius:6px;padding:2px 6px}
 .step small{color:var(--sub);font-size:12px}
-.step .rm{color:#c7c7cc;font-size:18px;width:26px;height:38px;flex:none}
+.step .rm{color:#9db7d6;width:26px;height:38px;flex:none}
 .spin{width:22px;height:22px;border:3px solid var(--fill);border-top-color:var(--blue);border-radius:50%;animation:sp .8s linear infinite;margin:18px auto}
 @keyframes sp{to{transform:rotate(360deg)}}
 
@@ -114,13 +114,20 @@ body.nav #fabs{top:auto;bottom:calc(96px + env(safe-area-inset-bottom))}
 #toast{position:fixed;z-index:9;left:50%;top:45%;transform:translate(-50%,-50%);background:rgba(28,28,30,.92);color:#fff;padding:12px 18px;border-radius:14px;font-size:15px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s;max-width:80vw;text-align:center}
 #toast.on{opacity:1}
 [hidden]{display:none!important}
+/* icone disegnate a mano, sui toni del blu */
+:root{--navy:#0a4fa3;--sky:#5ac8fa}
+.i{width:1.2em;height:1.2em;vertical-align:-.22em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.i.f{fill:currentColor}
+.fab .i{width:23px;height:23px}#cam .i{width:21px;height:21px}
+.row .ic .i{width:18px;height:18px}.x .i{width:15px;height:15px;stroke-width:2.6}
+.seg .i,.chip .i,.ext .i{color:var(--blue)}.wk .i{color:var(--blue)}
 
 /* marker */
 .me{width:24px;height:24px;border-radius:50%;background:var(--blue);border:3.5px solid #fff;box-shadow:0 0 0 8px rgba(0,122,255,.18),0 2px 8px rgba(0,0,0,.3)}
 .me.arrow{width:44px;height:44px;border:0;background:none;box-shadow:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
 .me svg{display:none}.me.arrow svg{display:block}
-.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--red);border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.3)}
-.pin.o{background:var(--blue)}
+.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--navy);border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.pin.o{background:var(--sky)}
 .via{width:18px;height:18px;border-radius:50%;background:#fff;border:5px solid var(--blue);box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:grab}
 .maplibregl-ctrl-bottom-right{opacity:.6}
 
@@ -153,13 +160,13 @@ dialog p{font-size:13px;color:var(--sub);line-height:1.45;margin:8px 0}
 </div>
 
 <div id="fabs">
-  <button class="fab glass" id="locate" title="La mia posizione">➤</button>
+  <button class="fab glass" id="locate" title="La mia posizione" data-ic="locate"></button>
   <div id="cam" class="glass">
-    <button data-c="rl" title="Ruota a sinistra">↺</button><button data-c="rr" title="Ruota a destra">↻</button>
-    <button data-c="up" title="Inclina verso l'orizzonte">⤒</button><button data-c="dn" title="Inclina verso l'alto">⤓</button>
-    <button data-c="globe" title="Vista globo">🌍</button><button data-c="north" title="Nord in alto, vista dall'alto">N</button>
+    <button data-c="rl" title="Ruota a sinistra" data-ic="rotl"></button><button data-c="rr" title="Ruota a destra" data-ic="rotr"></button>
+    <button data-c="up" title="Inclina verso l'orizzonte" data-ic="tiltup"></button><button data-c="dn" title="Inclina verso l'alto" data-ic="tiltdn"></button>
+    <button data-c="globe" title="Vista globo" data-ic="globe"></button><button data-c="north" title="Nord in alto, vista dall'alto" data-ic="compass"></button>
   </div>
-  <button class="fab glass" id="mute" title="Voce" hidden>🔊</button>
+  <button class="fab glass" id="mute" title="Voce" hidden></button>
   <button class="fab glass" id="recenter" hidden>Ricentra</button>
 </div>
 
@@ -194,6 +201,33 @@ function fmtDist(m){if(m>=1000)return(m/1000).toFixed(m>=10000?0:1).replace('.',
 function fmtDur(s){const m=Math.max(1,Math.round(s/60));return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'}
 let toastT;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),2600)}
 const desktop=()=>matchMedia('(min-width:720px)').matches;
+
+/* ---------- icone dell'interfaccia (24×24, tratto) ---------- */
+const IC={
+  locate:'<path d="M20.5 3.5 3.5 10.6l7 2.9 2.9 7z"/>',
+  vol:'<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.5 4.5 0 0 1 0 6M18.3 6.3a8.5 8.5 0 0 1 0 11.4"/>',
+  mute:'<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="m16 9.5 5 5M21 9.5l-5 5"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3.2 3.4 3.2 14.6 0 18M12 3c-3.2 3.4-3.2 14.6 0 18"/>',
+  rotl:'<path d="M4.5 12.5a7.5 7.5 0 1 0 2.4-5.8"/><path d="M4 4.5v4.7h4.7"/>',
+  rotr:'<path d="M19.5 12.5a7.5 7.5 0 1 1-2.4-5.8"/><path d="M20 4.5v4.7h-4.7"/>',
+  tiltup:'<path d="M5 4h14M12 20V9M7 13.5 12 8.5l5 5"/>',
+  tiltdn:'<path d="M5 20h14M12 4v11M7 10.5l5 5 5-5"/>',
+  compass:'<circle cx="12" cy="12" r="9"/><path d="M12 6.5 14.6 12 12 17.5 9.4 12z"/><path d="M9.4 12h5.2"/>',
+  gear:'<path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.6"/><circle cx="8" cy="17" r="2.6"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  star:'<path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>',
+  pin:'<path d="M12 21s6.5-6 6.5-11.2a6.5 6.5 0 1 0-13 0C5.500 15 12 21 12 21z"/><circle cx="12" cy="9.800" r="2.300"/>',
+  route:'<circle cx="6" cy="18" r="2.200"/><circle cx="18" cy="6" r="2.200"/><path d="M8.200 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.800"/>',
+  pencil:'<path d="M4 20h4L19.500 8.500l-4-4L4 16z"/><path d="m13.500 6.500 4 4"/>',
+  car:'<path d="M4 17v-5l2.200-5.500h11.600L20 12v5z"/><path d="M4 12h16M7.500 17v2.500M16.500 17v2.500"/>',
+  bus:'<path d="M6.500 4h11A2.500 2.500 0 0 1 20 6.500V17H4V6.500A2.500 2.500 0 0 1 6.500 4z"/><path d="M4 11.500h16M8 17v3M16 17v3"/>',
+  walk:'<circle cx="13" cy="4.500" r="1.700"/><path d="M12.500 8.500v6l-3 6M12.500 14.500l3.500 5.500M8.500 11.800l4-3.300 3.500 3"/>',
+  swap:'<path d="M8 4v16M4.500 16.500 8 20l3.500-3.500M16 20V4M12.500 7.500 16 4l3.500 3.500"/>',
+  warn:'<path d="M12 4 2.800 19.500h18.400z"/><path d="M12 10v4.500M12 17v.2"/>',
+  ext:'<path d="M9.500 6H18v8.500M18 6 7 17"/>',
+};
+const ic=(n,f)=>`<svg class="i${f?' f':''}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
+document.querySelectorAll('[data-ic]').forEach(e=>e.innerHTML=ic(e.dataset.ic));
 
 /* ---------- icone manovra ---------- */
 const TYPES={straight:'Dritto',left:'Sinistra',right:'Destra','slight-left':'Leggermente a sinistra','slight-right':'Leggermente a destra','sharp-left':'Tutto a sinistra','sharp-right':'Tutto a destra',uturn:'Inversione a U',roundabout:'Rotonda',merge:'Immissione','fork-left':'Bivio a sinistra','fork-right':'Bivio a destra',note:'Nota',walk:'A piedi',bus:'Sali sul bus',busoff:'Scendi dal bus',depart:'Partenza',arrive:'Arrivo'};
@@ -498,16 +532,16 @@ function vResults(){
   if(S.results==='loading')return'<div class="spin"></div>';
   if(!S.results)return'';
   if(!S.results.length)return'<div class="empty">Nessun risultato.</div>';
-  return S.results.map((r,i)=>`<button class="row" data-act="res" data-i="${i}"><div class="ic">●</div><div class="tx"><b>${esc(r.name)}</b><span>${esc(r.sub)}</span></div></button>`).join('');
+  return S.results.map((r,i)=>`<button class="row" data-act="res" data-i="${i}"><div class="ic">${ic('pin')}</div><div class="tx"><b>${esc(r.name)}</b><span>${esc(r.sub)}</span></div></button>`).join('');
 }
 function vHome(){
-  const pickHead=S.pick?`<div class="head"><b>${S.field==='origin'?'Scegli la partenza':'Scegli la destinazione'}</b><button class="x" data-act="unpick">✕</button></div>`:'';
-  const cur=S.pick&&S.field==='origin'?`<button class="row" data-act="curpos"><div class="ic b">➤</div><div class="tx"><b>Posizione attuale</b></div></button>`:'';
-  const list=saved.length?'<div class="card">'+saved.map(r=>S.renamingR===r.id?`<div class="row"><div class="ic g">★</div><input class="field" id="tname" value="${esc(r.name)}" placeholder="Nome della tratta" autocomplete="off" enterkeyhint="done" style="flex:1;min-width:0;height:38px;font-size:16px"><button class="pill" data-act="rrenok" data-id="${r.id}">Fatto</button></div>`:`<div class="row"><div class="ic g">★</div><button class="tx" data-act="edit" data-id="${r.id}" style="text-align:left"><b>${esc(r.name)}</b><span>${fmtDist(r.dist)} · ${fmtDur(r.dur)} · ${r.steps.length} indicazioni</span></button><button class="x" data-act="rrename" data-id="${r.id}" title="Rinomina">✎</button><button class="pill soft" data-act="edit" data-id="${r.id}">Modifica</button><button class="pill" data-act="gosaved" data-id="${r.id}">Vai</button></div>`).join('')+'</div>'
+  const pickHead=S.pick?`<div class="head"><b>${S.field==='origin'?'Scegli la partenza':'Scegli la destinazione'}</b><button class="x" data-act="unpick">${ic('x')}</button></div>`:'';
+  const cur=S.pick&&S.field==='origin'?`<button class="row" data-act="curpos"><div class="ic b">${ic('locate')}</div><div class="tx"><b>Posizione attuale</b></div></button>`:'';
+  const list=saved.length?'<div class="card">'+saved.map(r=>S.renamingR===r.id?`<div class="row"><div class="ic g">${ic('route')}</div><input class="field" id="tname" value="${esc(r.name)}" placeholder="Nome della tratta" autocomplete="off" enterkeyhint="done" style="flex:1;min-width:0;height:38px;font-size:16px"><button class="pill" data-act="rrenok" data-id="${r.id}">Fatto</button></div>`:`<div class="row"><div class="ic g">${ic('route')}</div><button class="tx" data-act="edit" data-id="${r.id}" style="text-align:left"><b>${esc(r.name)}</b><span>${fmtDist(r.dist)} · ${fmtDur(r.dur)} · ${r.steps.length} indicazioni</span></button><button class="x" data-act="rrename" data-id="${r.id}" title="Rinomina">${ic('pencil')}</button><button class="pill soft" data-act="edit" data-id="${r.id}">Modifica</button><button class="pill" data-act="gosaved" data-id="${r.id}">Vai</button></div>`).join('')+'</div>'
     :'<div class="empty">Nessuna tratta salvata. Cerca una destinazione, scegli il percorso che preferisci e tocca «Salva tratta»: potrai riscrivere ogni indicazione a modo tuo.</div>';
-  const plist=places.length?'<div class="card">'+places.map((p,i)=>!S.pick&&S.renaming===i?`<div class="row"><div class="ic">★</div><input class="field" id="pname" data-i="${i}" value="${esc(p.name)}" placeholder="Nome della destinazione" autocomplete="off" enterkeyhint="done" style="flex:1;min-width:0;height:38px;font-size:16px"><button class="pill" data-act="renok" data-i="${i}">Fatto</button></div>`:`<div class="row"><div class="ic">★</div><button class="tx" data-act="${S.pick?'pickplace':'goplace'}" data-i="${i}" style="text-align:left"><b>${esc(p.name)}</b><span>${esc(p.sub||'')}</span></button>${S.pick?'':`<button class="x" data-act="rename" data-i="${i}" title="Rinomina">✎</button><button class="x" data-act="rmplace" data-i="${i}" title="Rimuovi">✕</button><button class="pill" data-act="goplace" data-i="${i}">Vai</button>`}</div>`).join('')+'</div>'
+  const plist=places.length?'<div class="card">'+places.map((p,i)=>!S.pick&&S.renaming===i?`<div class="row"><div class="ic">${ic('star',1)}</div><input class="field" id="pname" data-i="${i}" value="${esc(p.name)}" placeholder="Nome della destinazione" autocomplete="off" enterkeyhint="done" style="flex:1;min-width:0;height:38px;font-size:16px"><button class="pill" data-act="renok" data-i="${i}">Fatto</button></div>`:`<div class="row"><div class="ic">${ic('star',1)}</div><button class="tx" data-act="${S.pick?'pickplace':'goplace'}" data-i="${i}" style="text-align:left"><b>${esc(p.name)}</b><span>${esc(p.sub||'')}</span></button>${S.pick?'':`<button class="x" data-act="rename" data-i="${i}" title="Rinomina">${ic('pencil')}</button><button class="x" data-act="rmplace" data-i="${i}" title="Rimuovi">${ic('x')}</button><button class="pill" data-act="goplace" data-i="${i}">Vai</button>`}</div>`).join('')+'</div>'
     :'<div class="empty">Nessuna destinazione salvata. Cerca un luogo e tocca «Salva destinazione».</div>';
-  return`${pickHead}<div class="search">${SEARCH_SVG}<input id="q" placeholder="Cerca un luogo o un indirizzo" value="${esc(S.q)}" autocomplete="off" enterkeyhint="search">${S.pick?'':'<button class="gear" data-act="settings" title="Impostazioni">⚙︎</button>'}</div>
+  return`${pickHead}<div class="search">${SEARCH_SVG}<input id="q" placeholder="Cerca un luogo o un indirizzo" value="${esc(S.q)}" autocomplete="off" enterkeyhint="search">${S.pick?'':`<button class="gear" data-act="settings" title="Impostazioni">${ic('gear')}</button>`}</div>
   <div id="results">${cur}${vResults()}</div>
   ${S.results?'':S.pick?(places.length?`<h3>Destinazioni salvate</h3>${plist}`:''):`<h3>Le mie destinazioni</h3>${plist}<h3>Le mie tratte</h3>${list}${ZTL?`<div class="hint">ZTL di Perugia in rosso sulla mappa. ${(a=>a.length?'Attive ora: '+a.join(', ')+'.':'Ora nessuna è attiva.')(ZTL.zones.filter((z,i)=>ztlActive()[i]))} ${settings.avoidZtl?'I percorsi in auto le evitano.':''}</div>`:''}`}`;
 }
@@ -518,39 +552,39 @@ function vPlan(){
   else if(bus&&S.its.length)alts='<div class="card" style="margin-top:10px">'+S.its.map((it,i)=>{
     const f=it.legs[0],l=it.legs[it.legs.length-1],ca=x=>x.exact?'':' circa',x2=it.legs[1];
     return`<button class="alt bus ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${Bus.hhmm(it.board.t-it.walk1)} → ${Bus.hhmm(it.arr)}</b>
-      <span>${it.legs.map(g=>`<i class="lb">${esc(g.line)}</i>`).join(' → ')} ${x2?'· 1 cambio':'direzione '+esc(f.to)} · ${fmtDur(it.dur*60)} in tutto · <em class="wk">🚶 ${Math.max(1,Math.round(it.walk1+it.xwalk+it.walk2))} min a piedi</em></span>
+      <span>${it.legs.map(g=>`<i class="lb">${esc(g.line)}</i>`).join(' → ')} ${x2?'· 1 cambio':'direzione '+esc(f.to)} · ${fmtDur(it.dur*60)} in tutto · <em class="wk">${ic('walk')} ${Math.max(1,Math.round(it.walk1+it.xwalk+it.walk2))} min a piedi</em></span>
       <span>Sali a <b>${esc(f.board.name)}</b> alle <b>${Bus.hhmm(f.board.t)}</b>${ca(f.board)} · <em class="wk">${Math.max(1,Math.round(it.walk1))} min a piedi</em>, ${Math.max(0,Math.round(it.wait))} min di attesa</span>
       ${x2?`<span>Cambia a <b>${esc(f.alight.name)}</b> (arrivo ${Bus.hhmm(f.alight.t)}${ca(f.alight)}): linea <b>${esc(x2.line)}</b> direzione ${esc(x2.to)} alle <b>${Bus.hhmm(x2.board.t)}</b>${ca(x2.board)}${it.xdist>30?` dalla fermata <b>${esc(x2.board.name)}</b>, a <em class="wk">${fmtDist(it.xdist)} a piedi</em>`:''}</span>`:''}
       <span>Scendi a <b>${esc(l.alight.name)}</b> alle <b>${Bus.hhmm(l.alight.t)}</b>${ca(l.alight)} · poi <em class="wk">${Math.max(1,Math.round(it.walk2))} min a piedi</em></span></div><div class="radio"></div></button>`}).join('')+'</div>';
-  else if(!bus&&S.routes.length)alts='<div class="card" style="margin-top:10px">'+S.routes.map((r,i)=>`<button class="alt ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${fmtDur(r.dur)}</b><span>${fmtDist(r.dist)}${r.label?' · '+esc(r.label):''}${r.source==='google'?' · Google':''}</span>${r.ztl?.length?`<span style="color:var(--red);font-weight:600">⚠︎ Entra nella ZTL attiva (${esc(r.ztl.slice(0,2).join(', '))}${r.ztl.length>2?'…':''}): serve il permesso</span>`:''}</div><div class="radio"></div></button>`).join('')+'</div>';
+  else if(!bus&&S.routes.length)alts='<div class="card" style="margin-top:10px">'+S.routes.map((r,i)=>`<button class="alt ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${fmtDur(r.dur)}</b><span>${fmtDist(r.dist)}${r.label?' · '+esc(r.label):''}${r.source==='google'?' · Google':''}</span>${r.ztl?.length?`<span style="color:var(--red);font-weight:600">${ic('warn')} Entra nella ZTL attiva (${esc(r.ztl.slice(0,2).join(', '))}${r.ztl.length>2?'…':''}): serve il permesso</span>`:''}</div><div class="radio"></div></button>`).join('')+'</div>';
   else alts=`<div class="empty" style="margin-top:10px">${noO?'Posizione non disponibile: scegli il punto di partenza.':bus?esc(S.busMsg||'Nessun bus trovato.'):'Nessun percorso trovato.'}</div>`;
   const has=!S.loading&&(bus?!!S.routes[S.sel]:S.routes.length>0);
   const gm=S.dest&&!noO?`https://www.google.com/maps/dir/?api=1&origin=${S.origin?S.origin.lat+','+S.origin.lng:S.me[1]+','+S.me[0]}&destination=${S.dest.lat},${S.dest.lng}${!bus&&S.vias.length?'&waypoints='+S.vias.map(v=>v.lat.toFixed(5)+','+v.lng.toFixed(5)).join('|'):''}&travelmode=${bus?'transit':'driving'}`:'';
   const P=settings.busPref;
-  return`<div class="head"><b>Indicazioni</b><button class="x" data-act="home">✕</button></div>
+  return`<div class="head"><b>Indicazioni</b><button class="x" data-act="home">${ic('x')}</button></div>
   <div class="card od">
     <button class="row" data-act="pick" data-f="origin"><i class="dot"></i><span class="l">Da</span><b>${esc(o)}</b></button>
     <button class="row" data-act="pick" data-f="dest"><i class="dot d"></i><span class="l">A</span><b>${esc(S.dest?.name||'Scegli…')}</b></button>
-    <button class="swap" data-act="swap" title="Inverti">⇅</button>
+    <button class="swap" data-act="swap" title="Inverti">${ic('swap')}</button>
   </div>
-  ${S.dest?`<div class="chips"><button class="chip" data-act="favdest" style="color:var(--blue);font-weight:600">${places.some(p=>samePlace(p,S.dest))?'★ Destinazione salvata':'☆ Salva destinazione'}</button></div>`:''}
-  <div class="seg"><button class="${bus?'':'on'}" data-act="tmode" data-m="car">🚗 Auto</button><button class="${bus?'on':''}" data-act="tmode" data-m="bus">🚌 Bus</button></div>
+  ${S.dest?`<div class="chips"><button class="chip" data-act="favdest" style="color:var(--blue);font-weight:600">${places.some(p=>samePlace(p,S.dest))?ic('star',1)+' Destinazione salvata':ic('star')+' Salva destinazione'}</button></div>`:''}
+  <div class="seg"><button class="${bus?'':'on'}" data-act="tmode" data-m="car">${ic('car')} Auto</button><button class="${bus?'on':''}" data-act="tmode" data-m="bus">${ic('bus')} Bus</button></div>
   ${bus?`<div class="seg"><button class="${P==='primo'?'on':''}" data-act="pref" data-p="primo">Primo bus<small>entro 10 min a piedi</small></button><button class="${P==='vicino'?'on':''}" data-act="pref" data-p="vicino">Fermata più vicina<small>anche se c'è da aspettare</small></button></div>`:''}
-  ${!bus&&S.vias.length?`<div class="chips">${S.vias.map((v,i)=>`<button class="chip" data-act="rmvia" data-i="${i}">Tappa ${i+1} ✕</button>`).join('')}</div>`:''}
+  ${!bus&&S.vias.length?`<div class="chips">${S.vias.map((v,i)=>`<button class="chip" data-act="rmvia" data-i="${i}">Tappa ${i+1} ${ic('x')}</button>`).join('')}</div>`:''}
   ${alts}
   ${has?(bus?`<div class="hint">Orari ufficiali Busitalia (rete urbana di Perugia); dove c'è scritto «circa» l'orario alla fermata è stimato. I percorsi con un cambio compaiono solo se non c'è un diretto o se fanno arrivare almeno 10 minuti prima.</div>
   <div class="btns"><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>`
   :`<div class="hint">Tocca la mappa per aggiungere una tappa e forzare la strada che preferisci. Le tappe si possono trascinare; toccale per rimuoverle.</div>
-  <div class="btns"><button class="btn" data-act="save">Salva tratta</button><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>`)+(gm?`<a class="ext" href="${esc(gm)}" target="_blank" rel="noopener">Apri questo percorso in Google Maps ↗</a>`:''):''}`;
+  <div class="btns"><button class="btn" data-act="save">Salva tratta</button><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>`)+(gm?`<a class="ext" href="${esc(gm)}" target="_blank" rel="noopener">Apri questo percorso in Google Maps ${ic('ext')}</a>`:''):''}`;
 }
 function vEdit(){
   const e=S.editing,r=e.route;
-  return`<div class="head"><b>${e.id?'Modifica tratta':'Nuova tratta'}</b><button class="x" data-act="home">✕</button></div>
+  return`<div class="head"><b>${e.id?'Modifica tratta':'Nuova tratta'}</b><button class="x" data-act="home">${ic('x')}</button></div>
   <input class="field" id="rname" value="${esc(e.name)}" placeholder="Nome della tratta">
   <div class="hint">${fmtDist(r.dist)} · ${fmtDur(r.dur)}. Riscrivi le indicazioni come preferisci, cambia l'icona toccandola, oppure tocca il percorso sulla mappa per aggiungere un'indicazione tua.</div>
   <div class="card">${r.steps.map((s,i)=>`<div class="step" data-i="${i}"><div class="sic">${icon(s.type,s.exit)}<select data-i="${i}">${Object.entries(TYPES).map(([k,v])=>`<option value="${k}" ${k===s.type?'selected':''}>${v}</option>`).join('')}</select></div>
     <div class="mid"><textarea rows="1" data-i="${i}" placeholder="Scrivi l'indicazione…">${esc(s.text)}</textarea><small>dopo ${fmtDist(s.at)}</small></div>
-    <button class="rm" data-act="rmstep" data-i="${i}" title="Rimuovi">✕</button></div>`).join('')}</div>
+    <button class="rm" data-act="rmstep" data-i="${i}" title="Rimuovi">${ic('x')}</button></div>`).join('')}</div>
   <div class="btns">${e.id?'<button class="btn del" data-act="delroute">Elimina</button>':''}<button class="btn pri" data-act="saveroute">Salva</button><button class="btn go" data-act="goedit">Vai</button></div>`;
 }
 let searchT,searchN=0;
@@ -678,7 +712,7 @@ function speak(t){
   const v=speechSynthesis.getVoices().find(v=>v.lang.startsWith('it'));if(v)u.voice=v;
   speechSynthesis.cancel();speechSynthesis.speak(u);
 }
-function setMuteIcon(){$('#mute').textContent=settings.voice?'🔊':'🔇'}
+function setMuteIcon(){$('#mute').innerHTML=ic(settings.voice?'vol':'mute')}
 $('#mute').onclick=()=>{settings.voice=!settings.voice;store.set('nav.settings',settings);setMuteIcon();if(!settings.voice)speechSynthesis?.cancel()};
 setMuteIcon();
 
@@ -720,7 +754,7 @@ function endNav(arrived){
   clearInterval(simT);simT=null;wake?.release?.();wake=null;speechSynthesis?.cancel();
   const was=S.nav;S.nav=null;meEl.classList.remove('arrow');meMarker.setRotation(0);
   if(was?.sim){if(S.me)meMarker.setLngLat(S.me);else meMarker.remove()}
-  if(arrived){speak('Sei arrivato a destinazione');toast('Sei arrivato 🎉')}
+  if(arrived){speak('Sei arrivato a destinazione');toast('Sei arrivato')}
   map.easeTo({pitch:0,bearing:0,duration:600,padding:{top:0,bottom:0,left:0,right:0}});
   if(was?.custom)goHome();else{S.mode='plan';render();draw();fit()}
 }
@@ -769,7 +803,7 @@ function startGeo(ask){
     if(!S.nav)meMarker.setLngLat(S.me).addTo(map);
     if(firstFix){firstFix=false;if(S.mode==='home')map.flyTo({center:S.me,zoom:14,duration:900});else if(S.mode==='plan'&&!S.origin&&!S.routes.length)computeRoutes()}
   },e=>{
-    if(e.code===1){geoDenied=true;toast('Posizione bloccata: consentila dalle impostazioni del sito nel browser, poi tocca di nuovo ➤')}
+    if(e.code===1){geoDenied=true;toast('Posizione bloccata: consentila dalle impostazioni del sito nel browser, poi tocca di nuovo il pulsante della posizione')}
     else if(ask||firstFix)toast(e.code===3?'Il GPS non risponde: riprova all\'aperto':'Posizione non disponibile al momento');
   },{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
 }
