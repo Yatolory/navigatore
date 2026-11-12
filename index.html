@@ -426,7 +426,7 @@ function vResults(){
 function vHome(){
   const pickHead=S.pick?`<div class="head"><b>${S.field==='origin'?'Scegli la partenza':'Scegli la destinazione'}</b><button class="x" data-act="unpick">✕</button></div>`:'';
   const cur=S.pick&&S.field==='origin'?`<button class="row" data-act="curpos"><div class="ic b">➤</div><div class="tx"><b>Posizione attuale</b></div></button>`:'';
-  const list=saved.length?'<div class="card">'+saved.map(r=>`<div class="row"><div class="ic g">★</div><button class="tx" data-act="edit" data-id="${r.id}" style="text-align:left"><b>${esc(r.name)}</b><span>${fmtDist(r.dist)} · ${fmtDur(r.dur)} · ${r.steps.length} indicazioni</span></button><button class="pill soft" data-act="edit" data-id="${r.id}">Modifica</button><button class="pill" data-act="gosaved" data-id="${r.id}">Vai</button></div>`).join('')+'</div>'
+  const list=saved.length?'<div class="card">'+saved.map(r=>S.renamingR===r.id?`<div class="row"><div class="ic g">★</div><input class="field" id="tname" value="${esc(r.name)}" placeholder="Nome della tratta" autocomplete="off" enterkeyhint="done" style="flex:1;min-width:0;height:38px;font-size:16px"><button class="pill" data-act="rrenok" data-id="${r.id}">Fatto</button></div>`:`<div class="row"><div class="ic g">★</div><button class="tx" data-act="edit" data-id="${r.id}" style="text-align:left"><b>${esc(r.name)}</b><span>${fmtDist(r.dist)} · ${fmtDur(r.dur)} · ${r.steps.length} indicazioni</span></button><button class="x" data-act="rrename" data-id="${r.id}" title="Rinomina">✎</button><button class="pill soft" data-act="edit" data-id="${r.id}">Modifica</button><button class="pill" data-act="gosaved" data-id="${r.id}">Vai</button></div>`).join('')+'</div>'
     :'<div class="empty">Nessuna tratta salvata. Cerca una destinazione, scegli il percorso che preferisci e tocca «Salva tratta»: potrai riscrivere ogni indicazione a modo tuo.</div>';
   const plist=places.length?'<div class="card">'+places.map((p,i)=>!S.pick&&S.renaming===i?`<div class="row"><div class="ic">★</div><input class="field" id="pname" data-i="${i}" value="${esc(p.name)}" placeholder="Nome della destinazione" autocomplete="off" enterkeyhint="done" style="flex:1;min-width:0;height:38px;font-size:16px"><button class="pill" data-act="renok" data-i="${i}">Fatto</button></div>`:`<div class="row"><div class="ic">★</div><button class="tx" data-act="${S.pick?'pickplace':'goplace'}" data-i="${i}" style="text-align:left"><b>${esc(p.name)}</b><span>${esc(p.sub||'')}</span></button>${S.pick?'':`<button class="x" data-act="rename" data-i="${i}" title="Rinomina">✎</button><button class="x" data-act="rmplace" data-i="${i}" title="Rimuovi">✕</button><button class="pill" data-act="goplace" data-i="${i}">Vai</button>`}</div>`).join('')+'</div>'
     :'<div class="empty">Nessuna destinazione salvata. Cerca un luogo e tocca «Salva destinazione».</div>';
@@ -494,7 +494,7 @@ panel.addEventListener('input',e=>{
   }else if(t.id==='rname')S.editing.name=t.value;
   else if(t.tagName==='TEXTAREA')S.editing.route.steps[+t.dataset.i].text=t.value;
 });
-panel.addEventListener('keydown',e=>{if(e.target.id==='pname'&&e.key==='Enter'){e.preventDefault();panel.querySelector('[data-act=renok]').click()}else if(e.target.id==='pname'&&e.key==='Escape'){S.renaming=null;render()}});
+panel.addEventListener('keydown',e=>{const id=e.target.id;if(id!=='pname'&&id!=='tname')return;if(e.key==='Enter'){e.preventDefault();panel.querySelector(id==='pname'?'[data-act=renok]':'[data-act=rrenok]').click()}else if(e.key==='Escape'){S.renaming=S.renamingR=null;render()}});
 panel.addEventListener('change',e=>{if(e.target.tagName==='SELECT'){S.editing.route.steps[+e.target.dataset.i].type=e.target.value;render()}});
 panel.addEventListener('focusin',e=>{if(e.target.tagName==='TEXTAREA'&&S.mode==='edit'){const r=S.editing.route,p=pointAt(r,r.steps[+e.target.dataset.i].at);map.easeTo({center:p.pt,zoom:Math.max(map.getZoom(),16),duration:500,padding:desktop()?{left:400}:{bottom:panel.offsetHeight}})}});
 panel.addEventListener('click',e=>{
@@ -508,7 +508,9 @@ panel.addEventListener('click',e=>{
     favdest(){const k=places.findIndex(p=>samePlace(p,S.dest));if(k>=0)places.splice(k,1);else places.unshift({name:S.dest.name,sub:S.dest.sub||'',lng:S.dest.lng,lat:S.dest.lat});store.set('nav.places',places);toast(k>=0?'Destinazione rimossa':'Destinazione salvata');render()},
     goplace(){S.dest={...places[i]};S.origin=null;S.vias=[];S.field='dest';S.mode='plan';computeRoutes()},
     pickplace(){S[S.field==='origin'?'origin':'dest']={...places[i]};S.pick=false;S.results=null;S.q='';S.mode='plan';computeRoutes()},
-    rename(){S.renaming=i;render();const e=$('#pname');e.focus();e.select()},
+    rrename(){S.renamingR=b.dataset.id;S.renaming=null;render();const e=$('#tname');e.focus();e.select()},
+    rrenok(){const v=$('#tname')?.value.trim(),r=saved.find(x=>x.id===b.dataset.id);if(v&&r){r.name=v;store.set('nav.routes',saved)}S.renamingR=null;render()},
+    rename(){S.renamingR=null;S.renaming=i;render();const e=$('#pname');e.focus();e.select()},
     renok(){const v=$('#pname')?.value.trim();if(v){places[i].name=v;store.set('nav.places',places)}S.renaming=null;render()},
     rmplace(){S.renaming=null;places.splice(i,1);store.set('nav.places',places);render()},
     pick(){S.field=b.dataset.f;S.pick=true;S.mode='home';S.results=null;S.q='';render()},
@@ -535,7 +537,7 @@ function persistEditing(){
   const rec={id:e.id,name:e.name.trim()||'Tratta',points:e.points,coords:r.coords,steps:r.steps.filter(s=>s.text.trim()),tl:r.tl,dist:r.dist,dur:r.dur};
   const k=saved.findIndex(x=>x.id===e.id);if(k>=0)saved[k]=rec;else saved.unshift(rec);store.set('nav.routes',saved);
 }
-function goHome(){Object.assign(S,{mode:'home',pick:false,results:null,q:'',origin:null,dest:null,vias:[],routes:[],editing:null,field:'dest',renaming:null});render();draw()}
+function goHome(){Object.assign(S,{mode:'home',pick:false,results:null,q:'',origin:null,dest:null,vias:[],routes:[],editing:null,field:'dest',renaming:null,renamingR:null});render();draw()}
 let routeN=0;
 async function footRoute(a,b){
   try{const j=await(await fetch(`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${a[0].toFixed(6)},${a[1].toFixed(6)};${b[0].toFixed(6)},${b[1].toFixed(6)}?overview=false&steps=true&geometries=geojson`)).json();
