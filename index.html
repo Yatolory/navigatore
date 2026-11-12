@@ -130,6 +130,11 @@ body.nav #fabs{top:auto;bottom:calc(96px + env(safe-area-inset-bottom))}
 .pin.o{background:var(--sky)}
 .via{width:18px;height:18px;border-radius:50%;background:#fff;border:5px solid var(--blue);box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:grab}
 .maplibregl-ctrl-bottom-right{opacity:.6}
+.maplibregl-popup-content{border-radius:14px;padding:12px 30px 12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.22);font:inherit}
+.maplibregl-popup-close-button{font-size:20px;color:var(--blue);padding:2px 8px}
+.zp b{display:block;font-size:16px;margin-bottom:6px}
+.zp i{display:inline-block;font-style:normal;color:#fff;font-weight:700;font-size:12px;border-radius:999px;padding:2px 9px}
+.zp p{margin:8px 0 6px;font-size:14px;line-height:1.35}.zp small{color:var(--sub);font-size:12px;line-height:1.3;display:block}
 
 dialog{border:0;border-radius:18px;padding:20px;width:min(420px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.3)}
 dialog::backdrop{background:rgba(0,0,0,.3)}
@@ -257,7 +262,9 @@ map.on('load',()=>{
   map.addSource('alt',{type:'geojson',data:empty});map.addSource('route',{type:'geojson',data:empty});
   const lay={'line-cap':'round','line-join':'round'};
   map.addSource('ztl',{type:'geojson',data:empty});
-  map.addLayer({id:'ztl',type:'line',source:'ztl',minzoom:11.5,layout:lay,paint:{'line-color':'#ff3b30','line-opacity':['case',['get','closed'],.8,.22],'line-width':['interpolate',['linear'],['zoom'],12,1.5,17,8]}},first);
+  const zc=['case',['get','closed'],'#ff3b30','#34c759'];   // rosso = chiusa, verde = si può passare
+  map.addLayer({id:'ztl',type:'fill',source:'ztl',minzoom:10.5,paint:{'fill-color':zc,'fill-opacity':.26}},first);
+  map.addLayer({id:'ztl-line',type:'line',source:'ztl',minzoom:10.5,layout:lay,paint:{'line-color':zc,'line-opacity':.9,'line-width':['interpolate',['linear'],['zoom'],11,1,16,2.5]}},first);
   loadZtl();
   map.addLayer({id:'alt-c',type:'line',source:'alt',layout:lay,paint:{'line-color':'#5b9bd9','line-width':['interpolate',['linear'],['zoom'],8,7,17,16]}},first);
   map.addLayer({id:'alt',type:'line',source:'alt',layout:lay,paint:{'line-color':'#a9cff5','line-width':['interpolate',['linear'],['zoom'],8,4.5,17,12]}},first);
@@ -301,7 +308,12 @@ function fit(r=shownRoute()){
 }
 map.on('click',e=>{
   const p=[e.lngLat.lng,e.lngLat.lat];
-  if(S.mode==='home'&&map.getLayer('ztl')){const f=map.queryRenderedFeatures([[e.point.x-6,e.point.y-6],[e.point.x+6,e.point.y+6]],{layers:['ztl']})[0];if(f){const z=f.properties.zone;return toast(`${f.properties.name||'Strada'} · ZTL ${ZTL.zones[z]}: ${ZHOURS[z]}. Ora è ${f.properties.closed?'ATTIVA':'aperta'}.`)}}
+  // tocco su una zona ZTL: nome, stato e orari (in pianificazione auto il tocco aggiunge invece una tappa)
+  if(ZTL&&map.getLayer('ztl')&&!S.nav&&S.mode!=='edit'&&!(S.mode==='plan'&&S.tmode==='car'&&S.routes.length)){
+    const f=map.queryRenderedFeatures(e.point,{layers:['ztl']})[0];
+    if(f){const z=f.properties.zone,c=f.properties.closed;ztlPop?.remove();
+      ztlPop=new maplibregl.Popup({maxWidth:'270px',offset:6}).setLngLat(e.lngLat).setHTML(`<div class="zp"><b>ZTL ${esc(ZTL.zones[z])}</b><i style="background:${c?'var(--red)':'var(--green)'}">${c?'Chiusa ora':'Aperta ora'}</i><p>${ZHOURS[z]}</p><small>Orari dal sito del Comune di Perugia. Con il permesso si entra sempre.</small></div>`).addTo(map);return}
+  }
   if(S.mode==='plan'&&S.routes.length&&S.tmode==='car'){
     const f=map.queryRenderedFeatures(e.point,{layers:['alt','alt-c']})[0];
     if(f){S.sel=f.properties.i;render();draw();return}
@@ -458,14 +470,15 @@ const ZRULE=[
   (d,f)=>f||(d.getHours()>=14&&d.getHours()<21),                             // Corso Bersaglieri: feriali 14–21; festivi tutto il giorno
   d=>!(d.getHours()>=16&&d.getHours()<20),                                   // Via del Roscetto: aperta solo 16–20
 ];
-const ZHOURS=['chiusa lun–ven 0–13, sabato e festivi 0–7','chiusa nei feriali 0–13, nei festivi 0–7','chiusa nei feriali 14–21, nei festivi tutto il giorno','aperta solo dalle 16 alle 20'];
+const ZHOURS=['Accesso vietato dal lunedì al venerdì 0:00–13:00; sabato e festivi 0:00–7:00.','Accesso vietato nei giorni feriali 0:00–13:00; nei festivi 0:00–7:00.','Accesso vietato nei giorni feriali 14:00–21:00; nei festivi tutto il giorno.','Accesso consentito tutti i giorni solo 16:00–20:00.'];
+let ztlPop=null;
 const ztlActive=(d=new Date())=>{const f=Bus.dayInfo(d).festivo;return ZRULE.map(r=>r(d,f))};
 // una strada interna è vietata se nessuno dei varchi che la servono è aperto
 const wayClosed=(w,act)=>w.g!==undefined?act[w.g]:!act.some((a,i)=>!a&&(w.m>>i&1));
 const wayZone=w=>w.g!==undefined?w.g:[0,1,2,3].find(i=>w.m>>i&1);
 async function loadZtl(){
   try{
-    const j=await(await fetch('ztl.json')).json();
+    const j=await(await fetch('ztl.json?v=2')).json();
     j.ways.forEach(w=>{const c=[];let x=0,y=0;for(let i=0;i<w.c.length;i+=2){x+=w.c[i];y+=w.c[i+1];c.push([x/1e6,y/1e6])}w.c=c});
     const xs=j.ways.flatMap(w=>w.c.map(c=>c[0])),ys=j.ways.flatMap(w=>w.c.map(c=>c[1]));
     j.bbox=[Math.min(...xs)-.0005,Math.min(...ys)-.0005,Math.max(...xs)+.0005,Math.max(...ys)+.0005];
@@ -474,7 +487,7 @@ async function loadZtl(){
 }
 function drawZtl(){
   if(!ZTL||!map.getSource('ztl'))return;const act=ztlActive();
-  map.getSource('ztl').setData({type:'FeatureCollection',features:ZTL.ways.map(w=>({type:'Feature',properties:{closed:wayClosed(w,act),name:w.n,zone:wayZone(w)},geometry:{type:'LineString',coordinates:w.c}}))});
+  map.getSource('ztl').setData({type:'FeatureCollection',features:ZTL.polys.map(q=>({type:'Feature',properties:{closed:act[q.z],zone:q.z},geometry:{type:'Polygon',coordinates:[q.r]}}))});
 }
 // nomi delle strade ZTL chiuse in questo momento che il percorso attraversa
 function ztlHits(route,act=ztlActive()){
@@ -543,7 +556,7 @@ function vHome(){
     :'<div class="empty">Nessuna destinazione salvata. Cerca un luogo e tocca «Salva destinazione».</div>';
   return`${pickHead}<div class="search">${SEARCH_SVG}<input id="q" placeholder="Cerca un luogo o un indirizzo" value="${esc(S.q)}" autocomplete="off" enterkeyhint="search">${S.pick?'':`<button class="gear" data-act="settings" title="Impostazioni">${ic('gear')}</button>`}</div>
   <div id="results">${cur}${vResults()}</div>
-  ${S.results?'':S.pick?(places.length?`<h3>Destinazioni salvate</h3>${plist}`:''):`<h3>Le mie destinazioni</h3>${plist}<h3>Le mie tratte</h3>${list}${ZTL?`<div class="hint">ZTL di Perugia in rosso sulla mappa. ${(a=>a.length?'Attive ora: '+a.join(', ')+'.':'Ora nessuna è attiva.')(ZTL.zones.filter((z,i)=>ztlActive()[i]))} ${settings.avoidZtl?'I percorsi in auto le evitano.':''}</div>`:''}`}`;
+  ${S.results?'':S.pick?(places.length?`<h3>Destinazioni salvate</h3>${plist}`:''):`<h3>Le mie destinazioni</h3>${plist}<h3>Le mie tratte</h3>${list}${ZTL?`<div class="hint">ZTL di Perugia sulla mappa: rosse se chiuse, verdi se si può passare. Tocca una zona per nome e orari. ${(a=>a.length?'Attive ora: '+a.join(', ')+'.':'Ora nessuna è attiva.')(ZTL.zones.filter((z,i)=>ztlActive()[i]))} ${settings.avoidZtl?'I percorsi in auto le evitano.':''}</div>`:''}`}`;
 }
 function vPlan(){
   const o=S.origin?S.origin.name:S.me?'Posizione attuale':'Scegli la partenza…',bus=S.tmode==='bus',noO=!S.origin&&!S.me;
