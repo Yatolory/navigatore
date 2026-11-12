@@ -226,8 +226,10 @@ map.on('load',()=>{
   loadZtl();
   map.addLayer({id:'alt-c',type:'line',source:'alt',layout:lay,paint:{'line-color':'#5b9bd9','line-width':['interpolate',['linear'],['zoom'],8,7,17,16]}},first);
   map.addLayer({id:'alt',type:'line',source:'alt',layout:lay,paint:{'line-color':'#a9cff5','line-width':['interpolate',['linear'],['zoom'],8,4.5,17,12]}},first);
-  map.addLayer({id:'route-c',type:'line',source:'route',layout:lay,paint:{'line-color':'#0a57c2','line-width':['interpolate',['linear'],['zoom'],8,8,17,19]}},first);
-  map.addLayer({id:'route',type:'line',source:'route',layout:lay,paint:{'line-color':'#1a8cff','line-width':['interpolate',['linear'],['zoom'],8,5.5,17,14]}},first);
+  map.addLayer({id:'route-c',type:'line',source:'route',filter:['!=',['get','walk'],true],layout:lay,paint:{'line-color':'#0a57c2','line-width':['interpolate',['linear'],['zoom'],8,8,17,19]}},first);
+  map.addLayer({id:'route',type:'line',source:'route',filter:['!=',['get','walk'],true],layout:lay,paint:{'line-color':'#1a8cff','line-width':['interpolate',['linear'],['zoom'],8,5.5,17,14]}},first);
+  // tratti a piedi: linea a puntini
+  map.addLayer({id:'route-walk',type:'line',source:'route',filter:['==',['get','walk'],true],layout:lay,paint:{'line-color':'#0a6fe0','line-width':['interpolate',['linear'],['zoom'],8,4,17,9],'line-dasharray':[0,1.8]}},first);
   draw();
 });
 const meEl=document.createElement('div');meEl.className='me';
@@ -239,9 +241,10 @@ function mk(cls,p,opt={}){const e=document.createElement('div');e.className=cls;
 function shownRoute(){return S.nav?S.nav.route:S.mode==='edit'?S.editing.route:S.routes[S.sel]}
 function draw(){
   if(!map.getSource('route'))return;
-  const fc=rs=>({type:'FeatureCollection',features:rs.map(r=>({type:'Feature',properties:{i:r.i},geometry:{type:'LineString',coordinates:r.c}}))});
+  const fc=rs=>({type:'FeatureCollection',features:rs.filter(r=>r.c.length>1).map(r=>({type:'Feature',properties:{i:r.i,walk:!!r.walk},geometry:{type:'LineString',coordinates:r.c}}))});
   const cur=shownRoute();
-  map.getSource('route').setData(fc(cur?[{c:cur.coords}]:[]));
+  const parts=[];if(cur){let i=0;for(const[a,b]of cur.walks||[]){if(a>i)parts.push({c:cur.coords.slice(i,a+1)});parts.push({c:cur.coords.slice(a,b+1),walk:true});i=b}parts.push({c:cur.coords.slice(i)})}
+  map.getSource('route').setData(fc(parts));
   map.getSource('alt').setData(fc(S.mode==='plan'?S.routes.map((r,i)=>({c:r.coords,i})).filter(r=>r.i!==S.sel):[]));
   markers.forEach(m=>m.remove());markers=[];
   let pts=null;
@@ -323,7 +326,8 @@ function buildRoute(raw,totalDur,label,source){
   const steps=marks.filter(m=>!m.s.silent).map(m=>({at:m.s.type==='arrive'?dist:cum[m.start],type:m.s.type,text:m.s.text,...(m.s.exit?{exit:m.s.exit}:{})}));
   let t=0;const tl=[[0,0]];for(const m of marks){t+=m.s.dur||0;tl.push([cum[m.end],t])}
   const k=t>0&&totalDur?totalDur/t:1;tl.forEach(x=>x[1]*=k);
-  return{coords,cum,steps,tl,dist,dur:totalDur||t,label:label||'',source};
+  const walks=[];for(const m of marks)if(m.s.walk&&m.end>m.start){const l=walks[walks.length-1];if(l&&l[1]>=m.start)l[1]=m.end;else walks.push([m.start,m.end])}
+  return{coords,cum,steps,tl,dist,dur:totalDur||t,label:label||'',source,walks};
 }
 function hydrate(sv){return{...sv,coords:sv.coords,cum:cumdist(sv.coords),steps:sv.steps.map(s=>({...s})),tl:sv.tl}}
 function mergeRoutes(a,b){
@@ -624,16 +628,16 @@ async function ensureBus(i){
   // sostituisco le stime in linea d'aria con i tempi reali a piedi
   it.walk1=w1.dur/60;it.walk2=w2.dur/60;it.wait=Math.max(0,it.board.t-nowM-it.walk1);it.arr=it.alight.t+it.walk2;it.dur=it.arr-nowM;
   const raw=[],ca=x=>x.exact?'':' circa',f=it.legs[0],l=it.legs[it.legs.length-1],x2=it.legs[1];
-  w1.raw.forEach((s,k)=>{if(k===0){s.type='walk';s.silent=false;s.text=`Cammina fino alla fermata ${f.board.name} (${fmtDist(w1.dist)}, ${fmtDur(w1.dur)})`}else if(s.type==='arrive')s.silent=true;raw.push(s)});
+  w1.raw.forEach((s,k)=>{if(k===0){s.type='walk';s.silent=false;s.text=`Cammina fino alla fermata ${f.board.name} (${fmtDist(w1.dist)}, ${fmtDur(w1.dur)})`}else if(s.type==='arrive')s.silent=true;s.walk=true;raw.push(s)});
   raw.push({coords:Bus.legCoords(f),type:'bus',dur:Math.max(60,(f.alight.t-nowM)*60-w1.dur),text:`Sali sulla linea ${f.line} direzione ${f.to} alle ${Bus.hhmm(f.board.t)}${ca(f.board)} · fermata ${f.board.name}`});
   if(x2){
     const sali=`linea ${x2.line} direzione ${x2.to} alle ${Bus.hhmm(x2.board.t)}${ca(x2.board)}`,walkX=it.xdist>30,ride=(x2.alight.t-f.alight.t)*60;
     if(walkX){   // le due fermate sono distinte: scendo, cammino, risalgo
-      raw.push({coords:[[f.alight.lng,f.alight.lat],[x2.board.lng,x2.board.lat]],type:'busoff',dur:it.xwalk*60,text:`Scendi a ${f.alight.name} alle ${Bus.hhmm(f.alight.t)}${ca(f.alight)} e raggiungi la fermata ${x2.board.name} (${fmtDist(it.xdist)} a piedi)`});
+      raw.push({coords:[[f.alight.lng,f.alight.lat],[x2.board.lng,x2.board.lat]],type:'busoff',walk:true,dur:it.xwalk*60,text:`Scendi a ${f.alight.name} alle ${Bus.hhmm(f.alight.t)}${ca(f.alight)} e raggiungi la fermata ${x2.board.name} (${fmtDist(it.xdist)} a piedi)`});
       raw.push({coords:Bus.legCoords(x2),type:'bus',dur:Math.max(60,ride-it.xwalk*60),text:`Cambio: sali sulla ${sali} · fermata ${x2.board.name}`});
     }else raw.push({coords:Bus.legCoords(x2),type:'bus',dur:Math.max(60,ride),text:`Cambio a ${f.alight.name}: scendi alle ${Bus.hhmm(f.alight.t)}${ca(f.alight)} e sali sulla ${sali}, stessa fermata`});
   }
-  w2.raw.forEach((s,k)=>{if(k===0){s.type='busoff';s.silent=false;s.text=`Scendi a ${l.alight.name} alle ${Bus.hhmm(l.alight.t)}${ca(l.alight)}, poi ${fmtDist(w2.dist)} a piedi`}raw.push(s)});
+  w2.raw.forEach((s,k)=>{if(k===0){s.type='busoff';s.silent=false;s.text=`Scendi a ${l.alight.name} alle ${Bus.hhmm(l.alight.t)}${ca(l.alight)}, poi ${fmtDist(w2.dist)} a piedi`}s.walk=true;raw.push(s)});
   const r=buildRoute(raw,0,'Linea '+it.line,'bus');r.transit=true;S.routes[i]=r;
 }
 async function computeBus(){
