@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Navigatore</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js"></script>
+<style>
+:root{--blue:#007aff;--green:#34c759;--red:#ff3b30;--ink:#1c1c1e;--sub:#6e6e73;--line:rgba(60,60,67,.14);--fill:rgba(118,118,128,.12)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;color:var(--ink);background:#e8eaed}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+#map{position:fixed;inset:0}
+.glass{background:rgba(250,250,252,.86);-webkit-backdrop-filter:blur(26px) saturate(180%);backdrop-filter:blur(26px) saturate(180%);box-shadow:0 8px 32px rgba(0,0,0,.16),0 0 0 .5px rgba(0,0,0,.08)}
+
+/* pannello */
+#panel{position:fixed;left:0;right:0;bottom:0;max-height:58vh;overflow:auto;border-radius:18px 18px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));z-index:5}
+@media(min-width:720px){#panel{left:16px;top:16px;right:auto;bottom:auto;width:384px;max-height:calc(100vh - 32px);border-radius:18px}}
+#panel h3{font-size:20px;margin:18px 4px 8px;letter-spacing:-.2px}
+.head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.head b{font-size:20px;flex:1;letter-spacing:-.2px}
+.x{width:30px;height:30px;border-radius:50%;background:var(--fill);color:var(--sub);font-size:17px;line-height:30px;flex:none}
+.search{display:flex;align-items:center;gap:8px;background:var(--fill);border-radius:12px;padding:0 10px;height:40px}
+.search svg{flex:none;opacity:.5}
+.search input{flex:1;border:0;background:none;outline:0;font-size:17px;min-width:0}
+.gear{font-size:19px;opacity:.6}
+.row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:.5px solid var(--line);width:100%;text-align:left}
+.row:last-child{border-bottom:0}
+.row .ic{width:34px;height:34px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;flex:none;font-size:15px}
+.row .ic.b{background:var(--blue)}.row .ic.g{background:var(--green)}
+.row .tx{flex:1;min-width:0}
+.row .tx b{display:block;font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .tx span{display:block;font-size:13px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pill{background:var(--blue);color:#fff;border-radius:999px;padding:7px 14px;font-weight:600;font-size:15px;flex:none}
+.pill.soft{background:var(--fill);color:var(--blue)}
+.empty{color:var(--sub);font-size:14px;padding:6px 4px 10px;line-height:1.4}
+.card{background:#fff;border-radius:14px;padding:2px 10px;box-shadow:0 0 0 .5px var(--line)}
+.od{position:relative}
+.od .row .dot{width:12px;height:12px;border-radius:50%;border:3px solid var(--blue);flex:none;margin:0 4px}
+.od .row .dot.d{border-color:var(--red)}
+.od .row span.l{color:var(--sub);font-size:13px;width:22px;flex:none}
+.od .row b{flex:1;font-weight:500;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.swap{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:#fff;box-shadow:0 0 0 .5px var(--line),0 2px 6px rgba(0,0,0,.1);color:var(--blue);font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.chip{background:var(--fill);border-radius:999px;padding:5px 10px;font-size:13px}
+.hint{font-size:13px;color:var(--sub);margin:10px 4px;line-height:1.4}
+.alt{display:flex;align-items:center;gap:10px;padding:11px 6px;border-bottom:.5px solid var(--line);width:100%;text-align:left}
+.alt:last-child{border-bottom:0}
+.alt b{font-size:20px;letter-spacing:-.3px}
+.alt span{display:block;font-size:13px;color:var(--sub)}
+.alt .tx{flex:1}
+.alt .radio{width:22px;height:22px;border-radius:50%;border:2px solid #c7c7cc;flex:none}
+.alt.on .radio{border:7px solid var(--blue)}
+.btns{display:flex;gap:8px;margin-top:12px}
+.btn{flex:1;height:48px;border-radius:13px;font-weight:600;font-size:17px;background:var(--fill);color:var(--blue)}
+.btn.go{background:var(--green);color:#fff;flex:1.4}
+.btn.pri{background:var(--blue);color:#fff}
+.btn.del{color:var(--red);flex:.8}
+a.ext{display:block;text-align:center;font-size:13px;color:var(--blue);margin-top:12px;text-decoration:none}
+.field{width:100%;height:44px;border-radius:12px;border:0;background:#fff;box-shadow:0 0 0 .5px var(--line);padding:0 12px;font-size:17px;font-weight:600;outline:0}
+.step{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:.5px solid var(--line)}
+.step:last-child{border-bottom:0}
+.sic{position:relative;width:38px;height:38px;border-radius:10px;background:var(--ink);color:#fff;flex:none;display:grid;place-items:center}
+.sic svg{width:26px;height:26px}
+.sic select{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.step .mid{flex:1;min-width:0}
+.step textarea{width:100%;border:0;background:none;resize:none;outline:0;font-size:15px;line-height:1.3;padding:2px 0;font-weight:500;field-sizing:content;min-height:22px}
+.step textarea:focus{background:var(--fill);border-radius:6px;padding:2px 6px}
+.step small{color:var(--sub);font-size:12px}
+.step .rm{color:#c7c7cc;font-size:18px;width:26px;height:38px;flex:none}
+.spin{width:22px;height:22px;border:3px solid var(--fill);border-top-color:var(--blue);border-radius:50%;animation:sp .8s linear infinite;margin:18px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* navigazione */
+#banner{position:fixed;z-index:6;top:calc(10px + env(safe-area-inset-top));left:10px;right:10px;max-width:520px;color:#fff;border-radius:20px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+@media(min-width:720px){#banner{left:50%;right:auto;width:520px;transform:translateX(-50%)}}
+#banner .main{background:#1c1c1e;display:flex;align-items:center;gap:14px;padding:14px 16px}
+#bicon{width:64px;height:64px;flex:none}
+#bicon svg{width:64px;height:64px}
+#bdist{font-size:34px;font-weight:700;letter-spacing:-.6px;line-height:1.05}
+#btext{font-size:19px;font-weight:500;line-height:1.2;margin-top:3px;opacity:.95}
+#banner .then{background:#2c2c2e;display:flex;align-items:center;gap:8px;padding:8px 16px;font-size:15px}
+#banner .then span{opacity:.6}
+#banner .then i{width:22px;height:22px;flex:none}
+#banner .then i svg{width:22px;height:22px}
+#banner .then em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#navbar{position:fixed;z-index:6;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));max-width:520px;border-radius:20px;display:flex;align-items:center;gap:14px;padding:12px 14px 12px 20px}
+@media(min-width:720px){#navbar{left:50%;right:auto;width:520px;transform:translateX(-50%)}}
+#navbar .c{flex:1}
+#navbar b{display:block;font-size:26px;font-weight:700;letter-spacing:-.4px;line-height:1.1}
+#navbar span{font-size:14px;color:var(--sub)}
+#end{background:var(--red);color:#fff;border-radius:14px;height:50px;padding:0 22px;font-weight:700;font-size:18px}
+#speed{position:fixed;z-index:6;left:14px;bottom:calc(96px + env(safe-area-inset-bottom));width:66px;height:66px;border-radius:50%;display:grid;place-content:center;text-align:center}
+#speed b{font-size:24px;line-height:1}#speed span{font-size:10px;color:var(--sub)}
+#fabs{position:fixed;z-index:4;right:12px;top:calc(12px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:10px}
+body.nav #fabs{top:auto;bottom:calc(96px + env(safe-area-inset-bottom))}
+#fabs{align-items:flex-end}
+#cam{display:grid;grid-template-columns:42px 42px;border-radius:12px;overflow:hidden}
+#cam button{height:42px;font-size:18px;color:var(--blue);border:.5px solid var(--line)}
+#cam button:active{background:var(--fill)}
+.fab{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;color:var(--blue);font-size:20px}
+#recenter{width:auto;padding:0 14px;font-weight:600;font-size:15px}
+#toast{position:fixed;z-index:9;left:50%;top:45%;transform:translate(-50%,-50%);background:rgba(28,28,30,.92);color:#fff;padding:12px 18px;border-radius:14px;font-size:15px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .25s;max-width:80vw;text-align:center}
+#toast.on{opacity:1}
+[hidden]{display:none!important}
+
+/* marker */
+.me{width:24px;height:24px;border-radius:50%;background:var(--blue);border:3.5px solid #fff;box-shadow:0 0 0 8px rgba(0,122,255,.18),0 2px 8px rgba(0,0,0,.3)}
+.me.arrow{width:44px;height:44px;border:0;background:none;box-shadow:none;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
+.me svg{display:none}.me.arrow svg{display:block}
+.pin{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--red);border:2.5px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.3)}
+.pin.o{background:var(--blue)}
+.via{width:18px;height:18px;border-radius:50%;background:#fff;border:5px solid var(--blue);box-shadow:0 2px 6px rgba(0,0,0,.3);cursor:grab}
+.maplibregl-ctrl-bottom-right{opacity:.6}
+
+dialog{border:0;border-radius:18px;padding:20px;width:min(420px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(0,0,0,.3)}
+dialog h2{margin:0 0 14px;font-size:22px}
+dialog label{display:block;font-size:13px;color:var(--sub);margin:12px 0 6px}
+dialog input[type=password],dialog input[type=text]{width:100%;height:42px;border-radius:10px;border:0;background:var(--fill);padding:0 12px;outline:0;font-size:15px}
+dialog .chk{display:flex;align-items:center;gap:10px;font-size:16px;color:var(--ink);margin:14px 0}
+dialog .chk input{width:20px;height:20px;accent-color:var(--blue)}
+dialog p{font-size:13px;color:var(--sub);line-height:1.45;margin:8px 0}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="panel" class="glass"></div>
+
+<div id="banner" hidden>
+  <div class="main"><div id="bicon"></div><div><div id="bdist"></div><div id="btext"></div></div></div>
+  <div class="then" id="then"><span>Poi</span><i id="ticon"></i><em id="ttext"></em></div>
+</div>
+
+<div id="speed" class="glass" hidden><b id="kmh">0</b><span>km/h</span></div>
+
+<div id="navbar" class="glass" hidden>
+  <div class="c"><b id="arr">--:--</b><span>arrivo</span></div>
+  <div class="c"><b id="rem">--</b><span id="km">--</span></div>
+  <button id="end">Fine</button>
+</div>
+
+<div id="fabs">
+  <button class="fab glass" id="locate" title="La mia posizione">➤</button>
+  <div id="cam" class="glass">
+    <button data-c="rl" title="Ruota a sinistra">↺</button><button data-c="rr" title="Ruota a destra">↻</button>
+    <button data-c="up" title="Inclina verso l'orizzonte">⤒</button><button data-c="dn" title="Inclina verso l'alto">⤓</button>
+    <button data-c="globe" title="Vista globo">🌍</button><button data-c="north" title="Nord in alto, vista dall'alto">N</button>
+  </div>
+  <button class="fab glass" id="mute" title="Voce" hidden>🔊</button>
+  <button class="fab glass" id="recenter" hidden>Ricentra</button>
+</div>
+
+<div id="toast"></div>
+
+<dialog id="settings">
+  <h2>Impostazioni</h2>
+  <label class="chk"><input type="checkbox" id="sVoice"> Indicazioni vocali</label>
+  <label class="chk"><input type="checkbox" id="sGoogle"> Usa Google Maps per ricerca e percorsi</label>
+  <label>Chiave API Google Maps</label>
+  <input type="password" id="sKey" placeholder="AIza…" autocomplete="off">
+  <p>Con la chiave, ricerca e percorsi arrivano da Google (traffico in tempo reale, indicazioni di Google Maps). Nel progetto Google Cloud devono essere attive <b>Routes API</b> e <b>Places API (New)</b>. La chiave resta salvata solo in questo browser. Senza chiave si usano i dati OpenStreetMap.</p>
+  <div class="btns"><button class="btn" id="sCancel">Annulla</button><button class="btn pri" id="sSave">Salva</button></div>
+</dialog>
+
+<script>
+/* ---------- utilità ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{toast('Memoria del browser piena')}}};
+let saved=store.get('nav.routes',[]);
+let settings=Object.assign({gkey:'',useGoogle:false,voice:true},store.get('nav.settings',{}));
+const R=6371000,rad=d=>d*Math.PI/180;
+function hav(a,b){const dLat=rad(b[1]-a[1]),dLng=rad(b[0]-a[0]),s=Math.sin(dLat/2)**2+Math.cos(rad(a[1]))*Math.cos(rad(b[1]))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s))}
+function bearing(a,b){const y=Math.sin(rad(b[0]-a[0]))*Math.cos(rad(b[1])),x=Math.cos(rad(a[1]))*Math.sin(rad(b[1]))-Math.sin(rad(a[1]))*Math.cos(rad(b[1]))*Math.cos(rad(b[0]-a[0]));return(Math.atan2(y,x)*180/Math.PI+360)%360}
+function cumdist(c){const o=[0];for(let i=1;i<c.length;i++)o.push(o[i-1]+hav(c[i-1],c[i]));return o}
+function fmtDist(m){if(m>=1000)return(m/1000).toFixed(m>=10000?0:1).replace('.',',')+' km';if(m>=100)return Math.round(m/50)*50+' m';return Math.max(10,Math.round(m/10)*10)+' m'}
+function fmtDur(s){const m=Math.max(1,Math.round(s/60));return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'}
+let toastT;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),2600)}
+const desktop=()=>matchMedia('(min-width:720px)').matches;
+
+/* ---------- icone manovra ---------- */
+const TYPES={straight:'Dritto',left:'Sinistra',right:'Destra','slight-left':'Leggermente a sinistra','slight-right':'Leggermente a destra','sharp-left':'Tutto a sinistra','sharp-right':'Tutto a destra',uturn:'Inversione a U',roundabout:'Rotonda',merge:'Immissione','fork-left':'Bivio a sinistra','fork-right':'Bivio a destra',note:'Nota',depart:'Partenza',arrive:'Arrivo'};
+function icon(type,exit){
+  const P={straight:'M24 40V10M12 22 24 10l12 12',right:'M16 40V24q0-6 6-6h14M28 10l8 8-8 8','slight-right':'M20 40V28l12-14M21 13h12v12','sharp-right':'M18 40V14l14 16M32 18v12H20',merge:'M24 40V10M12 22 24 10l12 12M36 40c0-8-12-8-12-16','fork-right':'M24 40V28l10-14M24 28 14 14M25 13h10v10',uturn:'M34 40V20a9 9 0 0 0-18 0v14M9 27l7 7 7-7',note:'M24 11v17M24 36v1',arrive:'M24 42s12-11 12-21a12 12 0 1 0-24 0c0 10 12 21 12 21zM24 17a4 4 0 1 0 0 8 4 4 0 0 0 0-8z'};
+  let t=type==='depart'?'straight':type,mirror=false,body;
+  if(/-left$|^left$/.test(t)){mirror=true;t=t.replace('left','right')}
+  if(t==='roundabout')body=`<circle cx="24" cy="21" r="9"/><path d="M24 41V30"/>${exit?`<text x="24" y="26" text-anchor="middle" font-size="13" font-weight="800" fill="currentColor" stroke="none">${exit}</text>`:''}`;
+  else body=`<path d="${P[t]||P.straight}"/>`;
+  if(mirror)body=`<g transform="translate(48 0) scale(-1 1)">${body}</g>`;
+  return`<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+}
+
+/* ---------- stato ---------- */
+const S={mode:'home',me:null,origin:null,dest:null,vias:[],routes:[],sel:0,field:'dest',pick:false,loading:false,editing:null,nav:null,results:null,q:''};
+
+/* ---------- mappa ---------- */
+const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/liberty',center:[12.4964,41.9028],zoom:5.4,attributionControl:{compact:true},maxPitch:80,minZoom:0});
+map.on('style.load',()=>{try{map.setProjection({type:'globe'})}catch(e){console.warn(e)}});
+map.touchPitch.enable();
+map.on('load',()=>{
+  // il percorso va sopra strade ed edifici, ma sotto le etichette
+  const ls=map.getStyle().layers,lastGeo=ls.findLastIndex(l=>l.type!=='symbol');
+  const first=ls.slice(lastGeo+1).find(l=>l.type==='symbol')?.id;
+  new ResizeObserver(()=>map.resize()).observe($('#map'));
+  const empty={type:'FeatureCollection',features:[]};
+  map.addSource('alt',{type:'geojson',data:empty});map.addSource('route',{type:'geojson',data:empty});
+  const lay={'line-cap':'round','line-join':'round'};
+  map.addLayer({id:'alt-c',type:'line',source:'alt',layout:lay,paint:{'line-color':'#5b9bd9','line-width':['interpolate',['linear'],['zoom'],8,7,17,16]}},first);
+  map.addLayer({id:'alt',type:'line',source:'alt',layout:lay,paint:{'line-color':'#a9cff5','line-width':['interpolate',['linear'],['zoom'],8,4.5,17,12]}},first);
+  map.addLayer({id:'route-c',type:'line',source:'route',layout:lay,paint:{'line-color':'#0a57c2','line-width':['interpolate',['linear'],['zoom'],8,8,17,19]}},first);
+  map.addLayer({id:'route',type:'line',source:'route',layout:lay,paint:{'line-color':'#1a8cff','line-width':['interpolate',['linear'],['zoom'],8,5.5,17,14]}},first);
+  draw();
+});
+const meEl=document.createElement('div');meEl.className='me';
+meEl.innerHTML='<svg viewBox="0 0 44 44" width="44" height="44"><path d="M22 4 37 38 22 31 7 38z" fill="#007aff" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg>';
+const meMarker=new maplibregl.Marker({element:meEl,rotationAlignment:'map',pitchAlignment:'map'});
+let markers=[];
+function mk(cls,p,opt={}){const e=document.createElement('div');e.className=cls;const m=new maplibregl.Marker({element:e,anchor:cls.startsWith('pin')?'bottom':'center',...opt}).setLngLat([p.lng,p.lat]).addTo(map);markers.push(m);return m}
+
+function shownRoute(){return S.nav?S.nav.route:S.mode==='edit'?S.editing.route:S.routes[S.sel]}
+function draw(){
+  if(!map.getSource('route'))return;
+  const fc=rs=>({type:'FeatureCollection',features:rs.map(r=>({type:'Feature',properties:{i:r.i},geometry:{type:'LineString',coordinates:r.c}}))});
+  const cur=shownRoute();
+  map.getSource('route').setData(fc(cur?[{c:cur.coords}]:[]));
+  map.getSource('alt').setData(fc(S.mode==='plan'?S.routes.map((r,i)=>({c:r.coords,i})).filter(r=>r.i!==S.sel):[]));
+  markers.forEach(m=>m.remove());markers=[];
+  let pts=null;
+  if(S.mode==='edit')pts=S.editing.points;else if(S.mode==='plan'||S.nav)pts={origin:S.origin,dest:S.dest,vias:S.vias};
+  if(pts){
+    if(pts.origin&&!S.nav)mk('pin o',pts.origin);
+    if(pts.dest)mk('pin',pts.dest);
+    if(S.mode==='plan')S.vias.forEach((v,i)=>{
+      const m=mk('via',v,{draggable:true});
+      m.on('dragend',()=>{const l=m.getLngLat();v.lng=l.lng;v.lat=l.lat;computeRoutes()});
+      m.getElement().addEventListener('click',e=>{e.stopPropagation();S.vias.splice(i,1);computeRoutes()});
+    });
+  }
+}
+function fit(r=shownRoute()){
+  if(!r)return;const b=new maplibregl.LngLatBounds();r.coords.forEach(c=>b.extend(c));
+  const ph=$('#panel').offsetHeight;
+  map.fitBounds(b,{padding:desktop()?{left:440,top:70,right:70,bottom:70}:{left:40,top:70,right:40,bottom:ph+30},pitch:0,bearing:0,duration:700,maxZoom:16});
+}
+map.on('click',e=>{
+  const p=[e.lngLat.lng,e.lngLat.lat];
+  if(S.mode==='plan'&&S.routes.length){
+    const f=map.queryRenderedFeatures(e.point,{layers:['alt','alt-c']})[0];
+    if(f){S.sel=f.properties.i;render();draw();return}
+    const cur=S.routes[S.sel],v={name:'Tappa',lng:p[0],lat:p[1]};
+    S.vias.push(v);
+    S.vias.sort((a,b)=>snap(cur,[a.lng,a.lat]).along-snap(cur,[b.lng,b.lat]).along);
+    computeRoutes();
+  }else if(S.mode==='edit'){
+    const r=S.editing.route,s=snap(r,p);
+    if(s.d>Math.max(60,40075000*Math.cos(rad(p[1]))/2**(map.getZoom()+8)*25))return toast('Tocca un punto sul percorso');
+    const st={at:s.along,type:'note',text:''};
+    r.steps.push(st);r.steps.sort((a,b)=>a.at-b.at);render();
+    const el=document.querySelector(`.step[data-i="${r.steps.indexOf(st)}"] textarea`);el?.scrollIntoView({block:'center'});el?.focus();
+  }
+});
+// comandi telecamera: rotazione, inclinazione, vista globo
+$('#cam').onclick=e=>{
+  const c=e.target.closest('button')?.dataset.c;if(!c)return;
+  if(S.nav){S.nav.follow=false;$('#recenter').hidden=false}
+  const b=map.getBearing(),p=map.getPitch();
+  if(c==='globe')return map.flyTo({zoom:1.4,pitch:0,bearing:0,duration:1800});
+  map.easeTo({duration:350,...({rl:{bearing:b-30},rr:{bearing:b+30},up:{pitch:Math.min(80,p+15)},dn:{pitch:Math.max(0,p-15)},north:{bearing:0,pitch:0}})[c]});
+};
+for(const ev of['rotatestart','pitchstart'])map.on(ev,e=>{if(S.nav&&e.originalEvent){S.nav.follow=false;$('#recenter').hidden=false}});
+map.on('dragstart',e=>{if(S.nav&&e.originalEvent){S.nav.follow=false;$('#recenter').hidden=false}});
+
+/* ---------- geometria percorso ---------- */
+function snap(r,p,from=0,to=1e9){
+  let best={d:Infinity,i:0,along:0,pt:p,brg:0};
+  const kx=Math.cos(rad(p[1]))*111320,ky=110540,c=r.coords;
+  for(let i=Math.max(0,from);i<=Math.min(to,c.length-2);i++){
+    const a=c[i],b=c[i+1],ax=(a[0]-p[0])*kx,ay=(a[1]-p[1])*ky,dx=(b[0]-a[0])*kx,dy=(b[1]-a[1])*ky,l2=dx*dx+dy*dy;
+    const t=l2?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/l2)):0,d=Math.hypot(ax+t*dx,ay+t*dy);
+    if(d<best.d)best={d,i,along:r.cum[i]+t*(r.cum[i+1]-r.cum[i]),pt:[a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])],brg:bearing(a,b)};
+  }
+  return best;
+}
+function pointAt(r,along){
+  const c=r.cum;let lo=0,hi=c.length-1;
+  while(hi-lo>1){const m=(lo+hi)>>1;if(c[m]<=along)lo=m;else hi=m}
+  const a=r.coords[lo],b=r.coords[hi]||a,t=c[hi]>c[lo]?Math.max(0,Math.min(1,(along-c[lo])/(c[hi]-c[lo]))):0;
+  return{pt:[a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])],brg:bearing(a,b),i:lo};
+}
+function timeAt(r,along){
+  const tl=r.tl;for(let i=1;i<tl.length;i++)if(along<=tl[i][0]){const[d0,t0]=tl[i-1],[d1,t1]=tl[i];return d1>d0?t0+(t1-t0)*(along-d0)/(d1-d0):t1}
+  return r.dur;
+}
+function buildRoute(raw,totalDur,label,source){
+  const coords=[],marks=[];
+  for(const s of raw){
+    const start=Math.max(0,coords.length-1);
+    for(const c0 of s.coords){const c=[+c0[0].toFixed(6),+c0[1].toFixed(6)],l=coords[coords.length-1];if(!l||l[0]!==c[0]||l[1]!==c[1])coords.push(c)}
+    marks.push({s,start,end:coords.length-1});
+  }
+  if(coords.length<2)coords.push(coords[0]);
+  const cum=cumdist(coords),dist=cum[cum.length-1];
+  const steps=marks.filter(m=>!m.s.silent).map(m=>({at:m.s.type==='arrive'?dist:cum[m.start],type:m.s.type,text:m.s.text,...(m.s.exit?{exit:m.s.exit}:{})}));
+  let t=0;const tl=[[0,0]];for(const m of marks){t+=m.s.dur||0;tl.push([cum[m.end],t])}
+  const k=t>0&&totalDur?totalDur/t:1;tl.forEach(x=>x[1]*=k);
+  return{coords,cum,steps,tl,dist,dur:totalDur||t,label:label||'',source};
+}
+function hydrate(sv){return{...sv,coords:sv.coords,cum:cumdist(sv.coords),steps:sv.steps.map(s=>({...s})),tl:sv.tl}}
+function mergeRoutes(a,b){
+  const coords=a.coords.concat(b.coords),cum=cumdist(coords),off=cum[a.coords.length];
+  return{coords,cum,dist:cum[cum.length-1],dur:a.dur+b.dur,label:b.label,source:b.source,
+    steps:a.steps.filter(s=>s.type!=='arrive').concat(b.steps.map(s=>({...s,at:s.at+off}))),
+    tl:a.tl.concat(b.tl.map(([d,t])=>[d+off,t+a.dur]))};
+}
+
+/* ---------- fornitori: OpenStreetMap ---------- */
+const MOD={left:'a sinistra',right:'a destra','slight left':'leggermente a sinistra','slight right':'leggermente a destra','sharp left':'tutto a sinistra','sharp right':'tutto a destra'};
+const MT={left:'left',right:'right','slight left':'slight-left','slight right':'slight-right','sharp left':'sharp-left','sharp right':'sharp-right',straight:'straight',uturn:'uturn'};
+function osrmStep(s,legI,lastLeg){
+  const m=s.maneuver,mod=m.modifier||'straight',name=s.name||s.ref||'',on=name?` su ${name}`:'';
+  const o={coords:s.geometry.coordinates,dur:s.duration,type:MT[mod]||'straight'};
+  switch(m.type){
+    case'depart':if(legI>0)o.silent=true;o.type='depart';o.text=name?`Parti su ${name}`:'Parti';break;
+    case'arrive':if(legI<lastLeg)o.silent=true;o.type='arrive';o.text='Sei arrivato a destinazione';break;
+    case'roundabout':case'rotary':o.type='roundabout';o.exit=m.exit||1;o.text=`Alla rotonda prendi la ${o.exit}ª uscita${on}`;break;
+    case'roundabout turn':o.text=`Alla rotonda ${mod==='straight'?'prosegui dritto':'svolta '+(MOD[mod]||'')}${on}`;break;
+    case'exit roundabout':case'exit rotary':case'notification':case'new name':o.silent=true;break;
+    case'merge':o.type='merge';o.text=`Immettiti${on}`;break;
+    case'on ramp':o.text=`Prendi lo svincolo ${MOD[mod]||''}${on}`.replace('  ',' ');break;
+    case'off ramp':o.text=`Prendi l'uscita ${MOD[mod]||''}${s.destinations?' verso '+s.destinations.split(',')[0]:on}`.replace('  ',' ');break;
+    case'fork':{const l=mod.includes('left');o.type=l?'fork-left':'fork-right';o.text=`Al bivio tieni la ${l?'sinistra':'destra'}${on}`;break}
+    case'end of road':o.text=`Alla fine della strada svolta ${MOD[mod]||'a destra'}${on}`;break;
+    default:
+      if(mod==='uturn')o.text='Fai inversione a U';
+      else if(mod==='straight')o.text=m.type==='continue'?`Continua${on}`:`Prosegui dritto${on}`;
+      else o.text=(m.type==='continue'?'Continua ':'Svolta ')+MOD[mod]+on;
+  }
+  return o;
+}
+async function osrmRoutes(pts,alts){
+  const u=`https://router.project-osrm.org/route/v1/driving/${pts.map(p=>p.lng.toFixed(6)+','+p.lat.toFixed(6)).join(';')}?overview=false&steps=true&geometries=geojson&alternatives=${alts&&pts.length===2}`;
+  const j=await(await fetch(u)).json();
+  if(j.code!=='Ok')throw new Error(j.code);
+  return j.routes.map(r=>{
+    const raw=[];r.legs.forEach((l,i)=>l.steps.forEach(s=>raw.push(osrmStep(s,i,r.legs.length-1))));
+    const label=r.legs.map(l=>l.summary).filter(Boolean).join(', ');
+    return buildRoute(raw,r.duration,label?'via '+label:'',"osm");
+  });
+}
+async function osmSearch(q){
+  const c=S.me||map.getCenter().toArray();
+  const j=await(await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=7&lat=${c[1].toFixed(3)}&lon=${c[0].toFixed(3)}`)).json();
+  return j.features.map(f=>{const p=f.properties,street=[p.street,p.housenumber].filter(Boolean).join(' ');
+    const name=p.name||street||p.city||q;
+    const sub=[p.name?street:'',p.city||p.county,p.state,p.country].filter((x,i,a)=>x&&x!==name&&a.indexOf(x)===i).join(', ');
+    return{name,sub,lng:f.geometry.coordinates[0],lat:f.geometry.coordinates[1]}});
+}
+
+/* ---------- fornitori: Google Maps ---------- */
+function decodePoly(str){let i=0,lat=0,lng=0;const out=[];while(i<str.length){for(const k of[0,1]){let r=0,s=0,b;do{b=str.charCodeAt(i++)-63;r|=(b&31)<<s;s+=5}while(b>=32);const d=r&1?~(r>>1):r>>1;if(k)lng+=d;else lat+=d}out.push([lng/1e5,lat/1e5])}return out}
+const GT={TURN_LEFT:'left',TURN_RIGHT:'right',TURN_SLIGHT_LEFT:'slight-left',TURN_SLIGHT_RIGHT:'slight-right',TURN_SHARP_LEFT:'sharp-left',TURN_SHARP_RIGHT:'sharp-right',UTURN_LEFT:'uturn',UTURN_RIGHT:'uturn',STRAIGHT:'straight',RAMP_LEFT:'slight-left',RAMP_RIGHT:'slight-right',MERGE:'merge',FORK_LEFT:'fork-left',FORK_RIGHT:'fork-right',ROUNDABOUT_LEFT:'roundabout',ROUNDABOUT_RIGHT:'roundabout',DEPART:'depart',NAME_CHANGE:'straight'};
+async function gFetch(url,body,mask){
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-Goog-Api-Key':settings.gkey,'X-Goog-FieldMask':mask},body:JSON.stringify(body)});
+  const j=await r.json();if(!r.ok)throw new Error(j.error?.message||r.status);return j;
+}
+async function googleRoutes(pts,alts){
+  const wp=p=>({location:{latLng:{latitude:p.lat,longitude:p.lng}}});
+  const j=await gFetch('https://routes.googleapis.com/directions/v2:computeRoutes',{origin:wp(pts[0]),destination:wp(pts[pts.length-1]),intermediates:pts.slice(1,-1).map(p=>({...wp(p),via:true})),travelMode:'DRIVE',routingPreference:'TRAFFIC_AWARE',computeAlternativeRoutes:!!alts&&pts.length===2,languageCode:'it',units:'METRIC'},
+    'routes.duration,routes.description,routes.legs.steps.staticDuration,routes.legs.steps.polyline.encodedPolyline,routes.legs.steps.navigationInstruction');
+  if(!j.routes?.length)throw new Error('nessun percorso');
+  return j.routes.map(r=>{
+    const raw=[];let n=0;
+    r.legs.forEach(l=>l.steps.forEach(s=>{const ni=s.navigationInstruction,c=decodePoly(s.polyline.encodedPolyline);
+      raw.push({coords:c,dur:parseFloat(s.staticDuration)||0,type:n++===0?'depart':GT[ni?.maneuver]||'straight',text:ni?.instructions?.replace(/\n/g,' · '),silent:!ni?.instructions})}));
+    raw.push({coords:[raw[raw.length-1].coords.at(-1)],dur:0,type:'arrive',text:'Sei arrivato a destinazione'});
+    return buildRoute(raw,parseFloat(r.duration),r.description?'via '+r.description:'','google');
+  });
+}
+async function googleSearch(q){
+  const c=S.me||map.getCenter().toArray();
+  const j=await gFetch('https://places.googleapis.com/v1/places:searchText',{textQuery:q,languageCode:'it',maxResultCount:7,locationBias:{circle:{center:{latitude:c[1],longitude:c[0]},radius:50000}}},'places.displayName,places.formattedAddress,places.location');
+  return(j.places||[]).map(p=>({name:p.displayName?.text||q,sub:p.formattedAddress||'',lng:p.location.longitude,lat:p.location.latitude}));
+}
+const useG=()=>settings.useGoogle&&settings.gkey;
+async function getRoutes(pts,alts){
+  if(useG())try{return await googleRoutes(pts,alts)}catch(e){console.warn(e);toast('Google Maps non disponibile ('+e.message+'). Uso OpenStreetMap.')}
+  return osrmRoutes(pts,alts);
+}
+async function search(q){
+  if(useG())try{return await googleSearch(q)}catch(e){console.warn(e);toast('Ricerca Google non disponibile. Uso OpenStreetMap.')}
+  return osmSearch(q);
+}
+
+/* ---------- pannello ---------- */
+const panel=$('#panel');
+const SEARCH_SVG='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+function render(){
+  document.body.classList.toggle('nav',!!S.nav);
+  panel.hidden=!!S.nav;$('#banner').hidden=$('#navbar').hidden=$('#speed').hidden=$('#mute').hidden=!S.nav;
+  if(!S.nav)$('#recenter').hidden=true;
+  if(S.nav)return;
+  panel.innerHTML=({home:vHome,plan:vPlan,edit:vEdit})[S.mode]();
+  if(S.mode==='home'&&S.pick)$('#q').focus();
+}
+function vResults(){
+  if(S.results==='loading')return'<div class="spin"></div>';
+  if(!S.results)return'';
+  if(!S.results.length)return'<div class="empty">Nessun risultato.</div>';
+  return S.results.map((r,i)=>`<button class="row" data-act="res" data-i="${i}"><div class="ic">●</div><div class="tx"><b>${esc(r.name)}</b><span>${esc(r.sub)}</span></div></button>`).join('');
+}
+function vHome(){
+  const pickHead=S.pick?`<div class="head"><b>${S.field==='origin'?'Scegli la partenza':'Scegli la destinazione'}</b><button class="x" data-act="unpick">✕</button></div>`:'';
+  const cur=S.pick&&S.field==='origin'?`<button class="row" data-act="curpos"><div class="ic b">➤</div><div class="tx"><b>Posizione attuale</b></div></button>`:'';
+  const list=saved.length?'<div class="card">'+saved.map(r=>`<div class="row"><div class="ic g">★</div><button class="tx" data-act="edit" data-id="${r.id}" style="text-align:left"><b>${esc(r.name)}</b><span>${fmtDist(r.dist)} · ${fmtDur(r.dur)} · ${r.steps.length} indicazioni</span></button><button class="pill soft" data-act="edit" data-id="${r.id}">Modifica</button><button class="pill" data-act="gosaved" data-id="${r.id}">Vai</button></div>`).join('')+'</div>'
+    :'<div class="empty">Nessuna tratta salvata. Cerca una destinazione, scegli il percorso che preferisci e tocca «Salva tratta»: potrai riscrivere ogni indicazione a modo tuo.</div>';
+  return`${pickHead}<div class="search">${SEARCH_SVG}<input id="q" placeholder="Cerca un luogo o un indirizzo" value="${esc(S.q)}" autocomplete="off" enterkeyhint="search">${S.pick?'':'<button class="gear" data-act="settings" title="Impostazioni">⚙︎</button>'}</div>
+  <div id="results">${cur}${vResults()}</div>
+  ${S.pick||S.results?'':`<h3>Le mie tratte</h3>${list}`}`;
+}
+function vPlan(){
+  const o=S.origin?S.origin.name:S.me?'Posizione attuale':'Scegli la partenza…';
+  const alts=S.loading?'<div class="spin"></div>':S.routes.length?'<div class="card" style="margin-top:10px">'+S.routes.map((r,i)=>`<button class="alt ${i===S.sel?'on':''}" data-act="sel" data-i="${i}"><div class="tx"><b>${fmtDur(r.dur)}</b><span>${fmtDist(r.dist)}${r.label?' · '+esc(r.label):''}${r.source==='google'?' · Google':''}</span></div><div class="radio"></div></button>`).join('')+'</div>'
+    :`<div class="empty" style="margin-top:10px">${!S.origin&&!S.me?'Posizione non disponibile: scegli il punto di partenza.':'Nessun percorso trovato.'}</div>`;
+  const has=S.routes.length&&!S.loading,cur=S.routes[S.sel];
+  const gm=S.dest&&(S.origin||S.me)?`https://www.google.com/maps/dir/?api=1&origin=${S.origin?S.origin.lat+','+S.origin.lng:S.me[1]+','+S.me[0]}&destination=${S.dest.lat},${S.dest.lng}${S.vias.length?'&waypoints='+S.vias.map(v=>v.lat.toFixed(5)+','+v.lng.toFixed(5)).join('|'):''}&travelmode=driving`:'';
+  return`<div class="head"><b>Indicazioni</b><button class="x" data-act="home">✕</button></div>
+  <div class="card od">
+    <button class="row" data-act="pick" data-f="origin"><i class="dot"></i><span class="l">Da</span><b>${esc(o)}</b></button>
+    <button class="row" data-act="pick" data-f="dest"><i class="dot d"></i><span class="l">A</span><b>${esc(S.dest?.name||'Scegli…')}</b></button>
+    <button class="swap" data-act="swap" title="Inverti">⇅</button>
+  </div>
+  ${S.vias.length?`<div class="chips">${S.vias.map((v,i)=>`<button class="chip" data-act="rmvia" data-i="${i}">Tappa ${i+1} ✕</button>`).join('')}</div>`:''}
+  ${alts}
+  ${has?`<div class="hint">Tocca la mappa per aggiungere una tappa e forzare la strada che preferisci. Le tappe si possono trascinare; toccale per rimuoverle.</div>
+  <div class="btns"><button class="btn" data-act="save">Salva tratta</button><button class="btn" data-act="sim">Simula</button><button class="btn go" data-act="go">Vai</button></div>
+  ${gm?`<a class="ext" href="${esc(gm)}" target="_blank" rel="noopener">Apri questo percorso in Google Maps ↗</a>`:''}`:''}`;
+}
+function vEdit(){
+  const e=S.editing,r=e.route;
+  return`<div class="head"><b>${e.id?'Modifica tratta':'Nuova tratta'}</b><button class="x" data-act="home">✕</button></div>
+  <input class="field" id="rname" value="${esc(e.name)}" placeholder="Nome della tratta">
+  <div class="hint">${fmtDist(r.dist)} · ${fmtDur(r.dur)}. Riscrivi le indicazioni come preferisci, cambia l'icona toccandola, oppure tocca il percorso sulla mappa per aggiungere un'indicazione tua.</div>
+  <div class="card">${r.steps.map((s,i)=>`<div class="step" data-i="${i}"><div class="sic">${icon(s.type,s.exit)}<select data-i="${i}">${Object.entries(TYPES).map(([k,v])=>`<option value="${k}" ${k===s.type?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="mid"><textarea rows="1" data-i="${i}" placeholder="Scrivi l'indicazione…">${esc(s.text)}</textarea><small>dopo ${fmtDist(s.at)}</small></div>
+    <button class="rm" data-act="rmstep" data-i="${i}" title="Rimuovi">✕</button></div>`).join('')}</div>
+  <div class="btns">${e.id?'<button class="btn del" data-act="delroute">Elimina</button>':''}<button class="btn pri" data-act="saveroute">Salva</button><button class="btn go" data-act="goedit">Vai</button></div>`;
+}
+let searchT,searchN=0;
+panel.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='q'){
+    S.q=t.value;clearTimeout(searchT);const q=t.value.trim(),n=++searchN;
+    const upd=()=>{if(S.mode!=='home')return;const pos=t.selectionStart;render();const i=$('#q');i.focus();i.setSelectionRange(pos,pos)};
+    if(q.length<3){if(S.results){S.results=null;upd()}return}
+    searchT=setTimeout(async()=>{
+      if(!S.results){S.results='loading';upd()}
+      let res;try{res=await search(q)}catch{res=[]}
+      if(n!==searchN)return;S.results=res;
+      const box=$('#results');if(box&&S.mode==='home'){ // aggiorna senza perdere il focus
+        if(!S.pick&&panel.querySelector('h3'))upd();else box.innerHTML=(S.pick&&S.field==='origin'?box.querySelector('[data-act=curpos]')?.outerHTML||'':'')+vResults();
+      }
+    },380);
+  }else if(t.id==='rname')S.editing.name=t.value;
+  else if(t.tagName==='TEXTAREA')S.editing.route.steps[+t.dataset.i].text=t.value;
+});
+panel.addEventListener('change',e=>{if(e.target.tagName==='SELECT'){S.editing.route.steps[+e.target.dataset.i].type=e.target.value;render()}});
+panel.addEventListener('focusin',e=>{if(e.target.tagName==='TEXTAREA'&&S.mode==='edit'){const r=S.editing.route,p=pointAt(r,r.steps[+e.target.dataset.i].at);map.easeTo({center:p.pt,zoom:Math.max(map.getZoom(),16),duration:500,padding:desktop()?{left:400}:{bottom:panel.offsetHeight}})}});
+panel.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,i=+b.dataset.i;
+  const A={
+    settings:openSettings,
+    res(){const p=S.results[i];S[S.field==='origin'?'origin':'dest']=p;S.results=null;S.q='';S.pick=false;S.mode='plan';if(S.field==='dest'&&!S.dest)return;computeRoutes()},
+    curpos(){S.origin=null;S.pick=false;S.results=null;S.q='';S.mode='plan';computeRoutes()},
+    unpick(){S.pick=false;S.results=null;S.q='';S.mode='plan';render()},
+    home:goHome,
+    pick(){S.field=b.dataset.f;S.pick=true;S.mode='home';S.results=null;S.q='';render()},
+    swap(){if(!S.origin)return toast('Scegli prima un punto di partenza');[S.origin,S.dest]=[S.dest,S.origin];S.vias.reverse();computeRoutes()},
+    rmvia(){S.vias.splice(i,1);computeRoutes()},
+    sel(){S.sel=i;render();draw()},
+    go(){startNav(S.routes[S.sel],{sim:false})},
+    sim(){startNav(S.routes[S.sel],{sim:true})},
+    save(){const r=S.routes[S.sel],o=S.origin||{name:'Partenza',lng:r.coords[0][0],lat:r.coords[0][1]};
+      S.editing={id:null,name:`${S.origin?S.origin.name:'Qui'} → ${S.dest.name}`,points:{origin:o,dest:S.dest,vias:S.vias.map(v=>({...v}))},route:{...r,steps:r.steps.map(s=>({...s}))}};S.mode='edit';render();draw()},
+    edit(){const sv=saved.find(r=>r.id===b.dataset.id);S.editing={id:sv.id,name:sv.name,points:sv.points,route:hydrate(sv)};S.mode='edit';render();draw();fit()},
+    rmstep(){S.editing.route.steps.splice(i,1);render()},
+    saveroute(){persistEditing();toast('Tratta salvata');goHome()},
+    delroute(){if(!confirm('Eliminare questa tratta?'))return;saved=saved.filter(r=>r.id!==S.editing.id);store.set('nav.routes',saved);goHome()},
+    goedit(){persistEditing();startSaved(S.editing.id)},
+    gosaved(){startSaved(b.dataset.id)},
+  };
+  A[a]?.();
+});
+function persistEditing(){
+  const e=S.editing,r=e.route;if(!e.id)e.id=Date.now().toString(36);
+  const rec={id:e.id,name:e.name.trim()||'Tratta',points:e.points,coords:r.coords,steps:r.steps.filter(s=>s.text.trim()),tl:r.tl,dist:r.dist,dur:r.dur};
+  const k=saved.findIndex(x=>x.id===e.id);if(k>=0)saved[k]=rec;else saved.unshift(rec);store.set('nav.routes',saved);
+}
+function goHome(){Object.assign(S,{mode:'home',pick:false,results:null,q:'',origin:null,dest:null,vias:[],routes:[],editing:null,field:'dest'});render();draw()}
+let routeN=0;
+async function computeRoutes(){
+  const n=++routeN,o=S.origin||(S.me&&{lng:S.me[0],lat:S.me[1]});
+  S.routes=[];S.sel=0;S.loading=!!(o&&S.dest);render();draw();
+  if(!S.loading)return;
+  let rs=[];try{rs=await getRoutes([o,...S.vias,S.dest],true)}catch(e){console.warn(e);toast('Impossibile calcolare il percorso')}
+  if(n!==routeN)return;S.routes=rs;S.loading=false;render();draw();fit();
+}
+
+/* ---------- impostazioni ---------- */
+function openSettings(){$('#sVoice').checked=settings.voice;$('#sGoogle').checked=settings.useGoogle;$('#sKey').value=settings.gkey;$('#settings').showModal()}
+$('#sCancel').onclick=()=>$('#settings').close();
+$('#sSave').onclick=()=>{settings={voice:$('#sVoice').checked,useGoogle:$('#sGoogle').checked,gkey:$('#sKey').value.trim()};
+  if(settings.useGoogle&&!settings.gkey){settings.useGoogle=false;toast('Per usare Google Maps serve la chiave API')}
+  store.set('nav.settings',settings);$('#settings').close();setMuteIcon()};
+
+/* ---------- voce ---------- */
+function speak(t){
+  if(!settings.voice||!('speechSynthesis'in window)||!t)return;
+  const u=new SpeechSynthesisUtterance(t.replace(/ª/g,'a ').replace(/·/g,','));u.lang='it-IT';u.rate=1.02;
+  const v=speechSynthesis.getVoices().find(v=>v.lang.startsWith('it'));if(v)u.voice=v;
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+function setMuteIcon(){$('#mute').textContent=settings.voice?'🔊':'🔇'}
+$('#mute').onclick=()=>{settings.voice=!settings.voice;store.set('nav.settings',settings);setMuteIcon();if(!settings.voice)speechSynthesis?.cancel()};
+setMuteIcon();
+
+/* ---------- navigazione ---------- */
+let wake=null,simT=null;
+async function startSaved(id){
+  const sv=saved.find(r=>r.id===id);if(!sv)return;
+  let route=hydrate(sv);S.origin=sv.points.origin;S.dest=sv.points.dest;S.vias=sv.points.vias||[];
+  // se sono lontano dalla partenza, aggiungo il tratto per raggiungerla
+  if(S.me&&hav(S.me,route.coords[0])>150&&hav(S.me,route.coords[0])<300000&&snap(route,S.me).d>80){
+    toast('Calcolo il tratto fino alla partenza…');
+    try{const lead=(await getRoutes([{lng:S.me[0],lat:S.me[1]},sv.points.origin],false))[0];route=mergeRoutes(lead,route)}catch(e){console.warn(e)}
+  }
+  const far=!S.me||snap(route,S.me).d>300;
+  startNav(route,{sim:far,keep:true});
+  if(far)toast(S.me?'Sei lontano dalla tratta: avvio la simulazione':'Posizione non disponibile: avvio la simulazione');
+}
+function startNav(route,{sim,keep}){
+  if(!route)return;
+  if(!sim&&!S.me){sim=true;toast('Posizione non disponibile: avvio la simulazione')}
+  S.nav={route,along:0,idx:0,off:0,said:{},follow:true,sim,custom:!!keep,busy:false};
+  S.mode='nav';render();draw();meEl.classList.add('arrow');
+  navigator.wakeLock?.request('screen').then(w=>wake=w).catch(()=>{});
+  speak(route.steps[0]?.type==='depart'?route.steps[0].text:'Partiamo');
+  if(sim){
+    let last=performance.now();
+    simT=setInterval(()=>{
+      const n=S.nav,now=performance.now(),dt=(now-last)/1000;last=now;if(!n)return;
+      const v=Math.min(38,Math.max(6,(n.route.dist-n.along>1?1:0)*speedAt(n.route,n.along)));
+      n.along=Math.min(n.route.dist,n.along+v*dt*2.5);
+      tick(pointAt(n.route,n.along).pt,v,false);
+    },50);
+  }else tick(S.me,0,true);
+}
+function speedAt(r,along){const t0=timeAt(r,along),t1=timeAt(r,along+30);return t1>t0?30/(t1-t0):12}
+function endNav(arrived){
+  clearInterval(simT);simT=null;wake?.release?.();wake=null;speechSynthesis?.cancel();
+  const was=S.nav;S.nav=null;meEl.classList.remove('arrow');meMarker.setRotation(0);
+  if(was?.sim){if(S.me)meMarker.setLngLat(S.me);else meMarker.remove()}
+  if(arrived){speak('Sei arrivato a destinazione');toast('Sei arrivato 🎉')}
+  map.easeTo({pitch:0,bearing:0,duration:600,padding:{top:0,bottom:0,left:0,right:0}});
+  if(was?.custom)goHome();else{S.mode='plan';render();draw();fit()}
+}
+$('#end').onclick=()=>endNav(false);
+$('#recenter').onclick=()=>{if(S.nav){S.nav.follow=true;$('#recenter').hidden=true}};
+function tick(pos,speed,gps,head){
+  const n=S.nav;if(!n||n.busy)return;const r=n.route;
+  let s=snap(r,pos,n.idx-3,n.idx+60);if(s.d>45)s=snap(r,pos);
+  if(gps){if(s.d>55){if(++n.off>=4)return reroute(pos)}else n.off=0}
+  const on=s.d<=55;if(on){n.idx=s.i;if(gps)n.along=s.along}
+  const shown=on&&s.d<35?s.pt:pos,brg=on?s.brg:(head??map.getBearing());
+  meMarker.setLngLat(shown).setRotation(brg).addTo(map);
+  if(n.follow){const o={center:shown,bearing:brg,pitch:58,zoom:speed>22?15.6:16.6,padding:{top:Math.round(innerHeight*.42),bottom:0,left:0,right:0}};
+    gps?map.easeTo({...o,duration:950,easing:t=>t}):map.jumpTo(o)}
+  // prossima manovra
+  let i=r.steps.findIndex(st=>st.at>n.along+8);if(i<0)i=r.steps.length-1;
+  const st=r.steps[i],d=Math.max(0,st.at-n.along),nx=r.steps[i+1];
+  $('#bicon').innerHTML=icon(st.type,st.exit);$('#bdist').textContent=d<15?'Ora':fmtDist(d);$('#btext').textContent=st.text;
+  $('#then').hidden=!nx;if(nx){$('#ticon').innerHTML=icon(nx.type,nx.exit);$('#ttext').textContent=nx.text}
+  const stage=d<=40?3:d<=250?2:d<=900?1:0;
+  if(stage>(n.said[i]||0)){n.said[i]=stage;speak(stage===3||d<25?st.text:`Tra ${fmtDist(d).replace(' km',' chilometri').replace(/ m$/,' metri')}, ${st.text.charAt(0).toLowerCase()+st.text.slice(1)}`)}
+  // riepilogo
+  const left=Math.max(0,r.dur-timeAt(r,n.along));
+  $('#arr').textContent=new Date(Date.now()+left*1000).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  $('#rem').textContent=fmtDur(left);$('#km').textContent=fmtDist(r.dist-n.along);
+  $('#kmh').textContent=Math.round((speed||0)*3.6);
+  if(r.dist-n.along<20)endNav(true);
+}
+async function reroute(pos){
+  const n=S.nav;n.busy=true;$('#btext').textContent='Ricalcolo del percorso…';$('#bdist').textContent='';speak('Ricalcolo');
+  const vias=S.vias.filter(v=>snap(n.route,[v.lng,v.lat]).along>n.along+50);
+  try{const r=(await getRoutes([{lng:pos[0],lat:pos[1]},...vias,S.dest],false))[0];if(S.nav===n)Object.assign(n,{route:r,along:0,idx:0,said:{}});draw()}catch(e){console.warn(e)}
+  n.off=0;n.busy=false;
+}
+
+/* ---------- posizione ---------- */
+let firstFix=true,geoId=null,geoDenied=false;
+function startGeo(ask){
+  if(!('geolocation'in navigator))return toast('Questo browser non supporta la posizione');
+  if(!isSecureContext)return toast('La posizione funziona solo su un indirizzo https');
+  if(geoId!==null)navigator.geolocation.clearWatch(geoId);
+  if(ask)toast('Richiedo la posizione…');
+  geoId=navigator.geolocation.watchPosition(p=>{
+    const c=p.coords;S.me=[c.longitude,c.latitude];geoDenied=false;
+    if(S.nav&&!S.nav.sim)return tick(S.me,c.speed||0,true,c.heading??undefined);
+    if(!S.nav)meMarker.setLngLat(S.me).addTo(map);
+    if(firstFix){firstFix=false;if(S.mode==='home')map.flyTo({center:S.me,zoom:14,duration:900});else if(S.mode==='plan'&&!S.origin&&!S.routes.length)computeRoutes()}
+  },e=>{
+    if(e.code===1){geoDenied=true;toast('Posizione bloccata: consentila dalle impostazioni del sito nel browser, poi tocca di nuovo ➤')}
+    else if(ask||firstFix)toast(e.code===3?'Il GPS non risponde: riprova all\'aperto':'Posizione non disponibile al momento');
+  },{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+}
+startGeo(false);
+$('#locate').onclick=()=>{if(S.nav){S.nav.follow=true;$('#recenter').hidden=true}else if(S.me)map.flyTo({center:S.me,zoom:15.5,pitch:0,bearing:0});else startGeo(true)};
+document.addEventListener('visibilitychange',()=>{if(S.nav&&document.visibilityState==='visible')navigator.wakeLock?.request('screen').then(w=>wake=w).catch(()=>{})});
+
+render();
+</script>
+</body>
+</html>
