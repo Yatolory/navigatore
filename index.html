@@ -181,6 +181,8 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{toast('Memoria del browser piena')}}};
 let saved=store.get('nav.routes',[]);
+let places=store.get('nav.places',[]);
+const samePlace=(a,b)=>Math.abs(a.lng-b.lng)<1e-5&&Math.abs(a.lat-b.lat)<1e-5;
 let settings=Object.assign({gkey:'',useGoogle:false,voice:true,busPref:'primo'},store.get('nav.settings',{}));
 const R=6371000,rad=d=>d*Math.PI/180;
 function hav(a,b){const dLat=rad(b[1]-a[1]),dLng=rad(b[0]-a[0]),s=Math.sin(dLat/2)**2+Math.cos(rad(a[1]))*Math.cos(rad(b[1]))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s))}
@@ -426,9 +428,11 @@ function vHome(){
   const cur=S.pick&&S.field==='origin'?`<button class="row" data-act="curpos"><div class="ic b">➤</div><div class="tx"><b>Posizione attuale</b></div></button>`:'';
   const list=saved.length?'<div class="card">'+saved.map(r=>`<div class="row"><div class="ic g">★</div><button class="tx" data-act="edit" data-id="${r.id}" style="text-align:left"><b>${esc(r.name)}</b><span>${fmtDist(r.dist)} · ${fmtDur(r.dur)} · ${r.steps.length} indicazioni</span></button><button class="pill soft" data-act="edit" data-id="${r.id}">Modifica</button><button class="pill" data-act="gosaved" data-id="${r.id}">Vai</button></div>`).join('')+'</div>'
     :'<div class="empty">Nessuna tratta salvata. Cerca una destinazione, scegli il percorso che preferisci e tocca «Salva tratta»: potrai riscrivere ogni indicazione a modo tuo.</div>';
+  const plist=places.length?'<div class="card">'+places.map((p,i)=>`<div class="row"><div class="ic">★</div><button class="tx" data-act="${S.pick?'pickplace':'goplace'}" data-i="${i}" style="text-align:left"><b>${esc(p.name)}</b><span>${esc(p.sub||'')}</span></button>${S.pick?'':`<button class="x" data-act="rmplace" data-i="${i}" title="Rimuovi">✕</button><button class="pill" data-act="goplace" data-i="${i}">Vai</button>`}</div>`).join('')+'</div>'
+    :'<div class="empty">Nessuna destinazione salvata. Cerca un luogo e tocca «Salva destinazione».</div>';
   return`${pickHead}<div class="search">${SEARCH_SVG}<input id="q" placeholder="Cerca un luogo o un indirizzo" value="${esc(S.q)}" autocomplete="off" enterkeyhint="search">${S.pick?'':'<button class="gear" data-act="settings" title="Impostazioni">⚙︎</button>'}</div>
   <div id="results">${cur}${vResults()}</div>
-  ${S.pick||S.results?'':`<h3>Le mie tratte</h3>${list}`}`;
+  ${S.results?'':S.pick?(places.length?`<h3>Destinazioni salvate</h3>${plist}`:''):`<h3>Le mie destinazioni</h3>${plist}<h3>Le mie tratte</h3>${list}`}`;
 }
 function vPlan(){
   const o=S.origin?S.origin.name:S.me?'Posizione attuale':'Scegli la partenza…',bus=S.tmode==='bus',noO=!S.origin&&!S.me;
@@ -449,6 +453,7 @@ function vPlan(){
     <button class="row" data-act="pick" data-f="dest"><i class="dot d"></i><span class="l">A</span><b>${esc(S.dest?.name||'Scegli…')}</b></button>
     <button class="swap" data-act="swap" title="Inverti">⇅</button>
   </div>
+  ${S.dest?`<div class="chips"><button class="chip" data-act="favdest" style="color:var(--blue);font-weight:600">${places.some(p=>samePlace(p,S.dest))?'★ Destinazione salvata':'☆ Salva destinazione'}</button></div>`:''}
   <div class="seg"><button class="${bus?'':'on'}" data-act="tmode" data-m="car">🚗 Auto</button><button class="${bus?'on':''}" data-act="tmode" data-m="bus">🚌 Bus</button></div>
   ${bus?`<div class="seg"><button class="${P==='primo'?'on':''}" data-act="pref" data-p="primo">Primo bus<small>entro 10 min a piedi</small></button><button class="${P==='vicino'?'on':''}" data-act="pref" data-p="vicino">Fermata più vicina<small>anche se c'è da aspettare</small></button></div>`:''}
   ${!bus&&S.vias.length?`<div class="chips">${S.vias.map((v,i)=>`<button class="chip" data-act="rmvia" data-i="${i}">Tappa ${i+1} ✕</button>`).join('')}</div>`:''}
@@ -480,7 +485,7 @@ panel.addEventListener('input',e=>{
       let res;try{res=await search(q)}catch{res=[]}
       if(n!==searchN)return;S.results=res;
       const box=$('#results');if(box&&S.mode==='home'){ // aggiorna senza perdere il focus
-        if(!S.pick&&panel.querySelector('h3'))upd();else box.innerHTML=(S.pick&&S.field==='origin'?box.querySelector('[data-act=curpos]')?.outerHTML||'':'')+vResults();
+        if(panel.querySelector('h3'))upd();else box.innerHTML=(S.pick&&S.field==='origin'?box.querySelector('[data-act=curpos]')?.outerHTML||'':'')+vResults();
       }
     },380);
   }else if(t.id==='rname')S.editing.name=t.value;
@@ -496,6 +501,10 @@ panel.addEventListener('click',e=>{
     curpos(){S.origin=null;S.pick=false;S.results=null;S.q='';S.mode='plan';computeRoutes()},
     unpick(){S.pick=false;S.results=null;S.q='';S.mode='plan';render()},
     home:goHome,
+    favdest(){const k=places.findIndex(p=>samePlace(p,S.dest));if(k>=0)places.splice(k,1);else places.unshift({name:S.dest.name,sub:S.dest.sub||'',lng:S.dest.lng,lat:S.dest.lat});store.set('nav.places',places);toast(k>=0?'Destinazione rimossa':'Destinazione salvata');render()},
+    goplace(){S.dest={...places[i]};S.origin=null;S.vias=[];S.field='dest';S.mode='plan';computeRoutes()},
+    pickplace(){S[S.field==='origin'?'origin':'dest']={...places[i]};S.pick=false;S.results=null;S.q='';S.mode='plan';computeRoutes()},
+    rmplace(){places.splice(i,1);store.set('nav.places',places);render()},
     pick(){S.field=b.dataset.f;S.pick=true;S.mode='home';S.results=null;S.q='';render()},
     swap(){if(!S.origin)return toast('Scegli prima un punto di partenza');[S.origin,S.dest]=[S.dest,S.origin];S.vias.reverse();computeRoutes()},
     rmvia(){S.vias.splice(i,1);computeRoutes()},
